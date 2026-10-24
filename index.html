@@ -1,0 +1,1287 @@
+<title>Mischwald Planspiel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Alegreya:wght@500;700;800&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: Arbeitsfläche wie ein Moderationstisch – links das Lagebild (Kennzahlen, Phase, Stimmungsbild), rechts der Spielzug. */
+:root{
+  --bg:#EEF1EC; --surface:#FFFFFF; --surface-2:#E3E8E0; --ink:#1B2420; --muted:#56635A; --line:#C9D1C5;
+  --nische:#3B7544; --regime:#3B5A82; --land:#8B6A36;
+  --accent:#3B7544; --accent-ink:#FFFFFF;
+  --good:#2E7A4C; --warn:#A8720E; --bad:#B03A2E;
+  --g1:#2E7D6B; --g2:#7A4FA0; --g3:#B0691A; --g4:#C2456B; --g5:#2F64B0;
+  --f-display:"Alegreya", Georgia, "Times New Roman", serif;
+  --f-body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121815; --surface:#1A221E; --surface-2:#232D28; --ink:#E4EAE4; --muted:#9CA99F; --line:#33403A;
+    --nische:#7CBF84; --regime:#8EAEDD; --land:#D1A866;
+    --accent:#7CBF84; --accent-ink:#0F1A12;
+    --good:#6CC48E; --warn:#E2B24A; --bad:#EC7B6E;
+    --g1:#5CC3AB; --g2:#B590DB; --g3:#E3A54E; --g4:#EE7C9E; --g5:#7FA8EC;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121815; --surface:#1A221E; --surface-2:#232D28; --ink:#E4EAE4; --muted:#9CA99F; --line:#33403A;
+  --nische:#7CBF84; --regime:#8EAEDD; --land:#D1A866;
+  --accent:#7CBF84; --accent-ink:#0F1A12;
+  --good:#6CC48E; --warn:#E2B24A; --bad:#EC7B6E;
+  --g1:#5CC3AB; --g2:#B590DB; --g3:#E3A54E; --g4:#EE7C9E; --g5:#7FA8EC;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.55}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--surface)}
+h1,h2,h3,h4{font-family:var(--f-display);line-height:1.15;text-wrap:balance;margin:0}
+h2{font-size:1.7rem;font-weight:800}
+h3{font-size:1.25rem;font-weight:700}
+h4{font-size:1.05rem;font-weight:700}
+p{margin:0}
+a{color:var(--regime)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+.eyebrow{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.wrap{max-width:1240px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+
+/* Kopf */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--surface);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding-block:10px}
+.brand{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-right:auto}
+.brand b{font-family:var(--f-display);font-size:1.6rem;font-weight:800;letter-spacing:-.01em}
+.brand span{font-size:.85rem;color:var(--muted)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap}
+.tabs button{border:1px solid transparent;background:none;padding:6px 12px;border-radius:999px;cursor:pointer;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--surface)}
+.tabs button:hover:not([aria-selected="true"]){border-color:var(--line);color:var(--ink)}
+.conn{font-family:var(--f-mono);font-size:.72rem;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.conn.on{color:var(--good);border-color:var(--good)}
+
+main{padding-block:24px 64px}
+.view[hidden]{display:none}
+
+/* Grundbausteine */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:20px}
+.stack{display:flex;flex-direction:column;gap:16px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{border:1px solid var(--ink);background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:8px;cursor:pointer;font-weight:700}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.ghost:hover{border-color:var(--ink)}
+.btn.small{padding:5px 10px;font-size:.85rem;font-weight:400}
+.btn.danger{background:var(--bad);border-color:var(--bad);color:#fff}
+.pill{display:inline-flex;align-items:center;gap:6px;font-family:var(--f-mono);font-size:.75rem;padding:3px 9px;border-radius:999px;border:1px solid currentColor;white-space:nowrap}
+.note{border-left:3px solid var(--land);padding:10px 14px;background:var(--surface-2);border-radius:0 8px 8px 0}
+.note.nische{border-color:var(--nische)}
+.note.regime{border-color:var(--regime)}
+.prose{max-width:68ch}
+.prose p + p{margin-top:.7em}
+ul.clean{margin:0;padding-left:1.1em}
+ul.clean li + li{margin-top:4px}
+details{border:1px dashed var(--line);border-radius:8px;padding:10px 14px}
+details summary{cursor:pointer;font-weight:700}
+details[open] summary{margin-bottom:8px}
+.tbl-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{text-align:left;vertical-align:top;padding:8px 12px;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-mono);font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600;background:var(--surface-2)}
+tr:last-child td{border-bottom:none}
+
+/* Spiel-Layout */
+.game{display:grid;grid-template-columns:minmax(260px,320px) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:860px){.game{grid-template-columns:minmax(0,1fr)}.game .dash{order:2}}
+.dash{position:sticky;top:calc(env(safe-area-inset-top,0px) + 74px)}
+@media (max-width:860px){.dash{position:static}}
+.dash .panel{padding:16px}
+.meter{display:grid;grid-template-columns:1fr auto;gap:2px 8px;align-items:baseline}
+.meter .lbl{font-size:.88rem}
+.meter .val{font-family:var(--f-mono);font-variant-numeric:tabular-nums;font-weight:600}
+.meter .bar{grid-column:1 / -1;height:7px;border-radius:4px;background:var(--surface-2);overflow:hidden}
+.meter .bar i{display:block;height:100%;border-radius:4px;background:var(--good);transition:width .5s ease}
+.meter.warn .bar i{background:var(--warn)} .meter.bad .bar i{background:var(--bad)}
+.meter.warn .val{color:var(--warn)} .meter.bad .val{color:var(--bad)}
+.meters{display:flex;flex-direction:column;gap:10px}
+.ladder{display:flex;flex-direction:column-reverse;gap:4px;margin-top:6px}
+.ladder div{display:flex;gap:8px;align-items:center;font-size:.84rem;padding:5px 8px;border-radius:6px;color:var(--muted);border:1px solid transparent}
+.ladder div b{font-family:var(--f-mono);font-size:.75rem}
+.ladder div.on{border-color:var(--nische);color:var(--ink);background:var(--surface-2)}
+.ladder div.on b{color:var(--nische)}
+.special{font-size:.84rem;padding:6px 8px;border-radius:6px;border:1px solid var(--bad);color:var(--bad)}
+.progress{display:flex;gap:6px;align-items:center}
+.progress span{flex:1;height:6px;border-radius:3px;background:var(--surface-2)}
+.progress span.done{background:var(--ink)}
+.progress span.now{background:var(--accent)}
+.actorlist{display:flex;flex-direction:column;gap:6px}
+.actorlist div{display:grid;grid-template-columns:1fr 84px;gap:8px;align-items:center;font-size:.82rem}
+.hbar{position:relative;height:8px;background:var(--surface-2);border-radius:4px}
+.hbar::after{content:"";position:absolute;left:50%;top:-2px;bottom:-2px;width:1px;background:var(--muted)}
+.hbar i{position:absolute;top:0;bottom:0;border-radius:4px}
+
+.stage{display:flex;flex-direction:column;gap:16px;min-width:0}
+.stage .panel{padding:24px}
+@media (max-width:520px){.stage .panel{padding:16px}}
+.stepnav{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.stepnav span{font-family:var(--f-mono);font-size:.72rem;padding:3px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+.stepnav span.on{border-color:var(--ink);color:var(--ink);font-weight:600}
+.stationhead{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:baseline;justify-content:space-between}
+.konzept{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;border:1px solid var(--line);border-radius:var(--r);padding:16px 18px;background:var(--surface-2)}
+.konzept .lf{font-style:italic}
+.quotes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.quote{border:1px solid var(--line);border-radius:8px;padding:12px 14px;font-size:.93rem}
+.quote cite{display:block;font-style:normal;font-size:.78rem;color:var(--muted);margin-top:6px}
+.alloc{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.alloc .cell{border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.alloc .cell small{color:var(--muted);font-size:.8rem;line-height:1.35}
+.stepper{display:flex;align-items:center;gap:8px}
+.stepper button{width:32px;height:32px;border-radius:6px;border:1px solid var(--line);background:var(--surface);cursor:pointer;font-weight:700}
+.stepper button:disabled{opacity:.35;cursor:not-allowed}
+.stepper output{font-family:var(--f-mono);font-size:1.1rem;font-weight:600;min-width:2ch;text-align:center}
+.pips{display:flex;gap:3px}
+.pips i{width:10px;height:10px;border-radius:2px;background:var(--surface-2)}
+.pips i.f{background:var(--ink)}
+.options{display:flex;flex-direction:column;gap:10px}
+.opt{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;text-align:left;border:1px solid var(--line);border-radius:var(--r);padding:14px 16px;background:var(--surface);cursor:pointer}
+.opt:hover{border-color:var(--muted)}
+.opt[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--surface-2)}
+.opt .k{grid-row:span 2;font-family:var(--f-display);font-size:1.6rem;font-weight:800;line-height:1;color:var(--muted)}
+.opt[aria-pressed="true"] .k{color:var(--ink)}
+.opt b{font-size:1rem}
+.opt span{font-size:.92rem;color:var(--muted)}
+.deltas{display:flex;flex-wrap:wrap;gap:8px}
+.delta{font-family:var(--f-mono);font-size:.8rem;padding:4px 10px;border-radius:999px;border:1px solid var(--line)}
+.delta.up{color:var(--good);border-color:var(--good)} .delta.down{color:var(--bad);border-color:var(--bad)}
+.delta.inv.up{color:var(--bad);border-color:var(--bad)} .delta.inv.down{color:var(--good);border-color:var(--good)}
+.theory{border:1px solid var(--regime);border-radius:var(--r);padding:14px 16px}
+.theory .eyebrow{color:var(--regime)}
+.task{display:flex;flex-direction:column;gap:12px}
+.task fieldset{border:1px solid var(--line);border-radius:8px;padding:12px 14px;margin:0}
+.task legend{font-weight:700;padding:0 6px}
+.checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:6px 16px}
+.checks label{display:flex;gap:8px;align-items:flex-start;font-size:.94rem;cursor:pointer}
+.formgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.formgrid label{display:flex;flex-direction:column;gap:4px;font-size:.9rem}
+select,input[type="text"],input[type="number"]{font:inherit;padding:8px 10px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:0;width:100%}
+.result-ok{color:var(--good);font-weight:700} .result-no{color:var(--bad);font-weight:700}
+.reveal{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.reveal div{border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:.9rem}
+
+/* Start */
+.hero{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.hero{grid-template-columns:minmax(0,1fr)}}
+.hero h1{font-size:clamp(2.2rem,5vw,3.4rem);font-weight:800;letter-spacing:-.015em}
+.hero .lead{font-size:1.1rem;max-width:60ch}
+.groups{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px}
+.groups button{border:2px solid var(--line);background:var(--surface);border-radius:10px;padding:12px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
+.groups button b{font-family:var(--f-display);font-size:1.5rem}
+.groups button small{font-size:.7rem;color:var(--muted)}
+.groups button[aria-pressed="true"]{border-color:var(--ink);background:var(--surface-2)}
+.levels{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+.levels div{display:grid;grid-template-columns:110px minmax(0,1fr);gap:12px;padding:10px 12px;border-radius:8px;background:var(--surface-2);font-size:.92rem}
+.levels b{font-family:var(--f-mono);font-size:.78rem;letter-spacing:.04em;text-transform:uppercase}
+.levels .l1 b{color:var(--land)} .levels .l2 b{color:var(--regime)} .levels .l3 b{color:var(--nische)}
+
+/* Stationen */
+.rot td,.rot th{text-align:center}
+.rot td:first-child,.rot th:first-child{text-align:left}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.scard{display:flex;flex-direction:column;gap:12px}
+.scard .num{font-family:var(--f-display);font-weight:800;font-size:2.4rem;line-height:1;color:var(--muted)}
+.scard ol{margin:0;padding-left:1.2em}
+.scard ol li + li{margin-top:4px}
+
+/* Leinwand */
+.board{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:20px;align-items:start}
+@media (max-width:980px){.board{grid-template-columns:minmax(0,1fr)}}
+.gcards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.gcard{border:1px solid var(--line);border-top:4px solid var(--gc);border-radius:var(--r);padding:12px 14px;background:var(--surface);display:flex;flex-direction:column;gap:8px}
+.gcard .meters{gap:6px}
+.gcard .meter .lbl{font-size:.78rem}
+.gcard .meter .bar{height:5px}
+.gdot{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--gc)}
+svg text{font-family:var(--f-body)}
+.chart-wrap{overflow-x:auto}
+.chart-wrap svg{display:block;width:100%;height:auto;min-width:420px}
+.matrix td{font-size:.86rem}
+.matrix td b{font-family:var(--f-display);font-size:1.1rem;margin-right:4px}
+.confirm{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.88rem}
+
+/* KI-Gespräch */
+.chat{display:flex;flex-direction:column;gap:12px}
+.chat-head{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;justify-content:space-between}
+.chat-head label{display:flex;flex-direction:column;gap:4px;font-size:.88rem;min-width:220px;flex:1}
+.chat-log{display:flex;flex-direction:column;gap:10px;max-height:420px;overflow-y:auto;padding:4px 2px}
+.msg{max-width:88%;padding:10px 14px;border-radius:12px;font-size:.95rem;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;background:var(--ink);color:var(--surface);border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--surface-2);border-bottom-left-radius:4px}
+.msg.bot .who{display:block;font-family:var(--f-mono);font-size:.7rem;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+.chat-form{display:flex;gap:8px;flex-wrap:wrap}
+.chat-form input{flex:1;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:5px 12px;font-size:.84rem;cursor:pointer;text-align:left}
+.chip:hover{border-color:var(--ink)}
+
+/* Lehrende */
+.cols2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.foot{margin-top:40px;font-size:.82rem;color:var(--muted)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><b>Mischwald</b><span>Planspiel-Parcours · M5 Management interner Stakeholder</span></div>
+    <nav class="tabs" role="tablist" aria-label="Bereiche">
+      <button role="tab" id="tab-gruppe" data-tab="gruppe" aria-selected="true">Gruppe</button>
+      <button role="tab" id="tab-stationen" data-tab="stationen" aria-selected="false">Stationen</button>
+      <button role="tab" id="tab-leinwand" data-tab="leinwand" aria-selected="false">Leinwand</button>
+      <button role="tab" id="tab-lehrende" data-tab="lehrende" aria-selected="false">Für Lehrende</button>
+    </nav>
+    <span class="conn" id="conn">nur lokal</span>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="view" id="view-gruppe"></section>
+  <section class="view" id="view-stationen" hidden></section>
+  <section class="view" id="view-leinwand" hidden></section>
+  <section class="view" id="view-lehrende" hidden></section>
+  <p class="foot">Fiktives Fallbeispiel für die Hochschullehre. Personen, Organisation und Zahlen sind erfunden; das Modell ist didaktisch vereinfacht. Theoretischer Rahmen: Mehrebenenperspektive nach Geels in der Lesart von Bils, Faix und Hilbrands (2024).</p>
+</main>
+
+<script>
+/* =========================================================
+   1. FALLDATEN
+   ========================================================= */
+const IND = {
+  N:{label:'Nischenvitalität', short:'Nische', desc:'Innovationskraft und Reichweite der Werkstatt'},
+  R:{label:'Rückhalt im Regime', short:'Regime', desc:'Akzeptanz bei Dekanat, Gemeinden, Verwaltung'},
+  P:{label:'Hauptamt', short:'Hauptamt', desc:'Bindung und Belastbarkeit der Mitarbeitenden'},
+  E:{label:'Ehrenamt', short:'Ehrenamt', desc:'Engagement der Freiwilligen'},
+  F:{label:'Deckungsgrad', short:'Deckung', desc:'Anteil der Kosten, der ohne Innovationsfonds gesichert ist', unit:' %'},
+  K:{label:'Konfliktniveau', short:'Konflikt', desc:'Mikropolitische Spannung im System', inverse:true}
+};
+const KEYS = ['N','R','P','E','F','K'];
+
+const ACTORS = [
+  {id:'albrecht', name:'Dr. Ruth Albrecht', rolle:'Dekanin', einfluss:5, h:1, macht:'regeln',
+   interesse:'Das Dekanat durch die Reform bringen, ohne dass Gemeinden abspringen.'},
+  {id:'kessler', name:'Jens Kessler', rolle:'Leiter der Regionalverwaltung', einfluss:4, h:-1, macht:'info',
+   interesse:'Ein Haushalt, der aufgeht, und Regeln, die für alle gelten.'},
+  {id:'lindqvist', name:'Petra Lindqvist', rolle:'Vorsitzende Finanzausschuss der Dekanatssynode', einfluss:4, h:-1, macht:'regeln',
+   interesse:'Klare Kriterien, bevor Geld dauerhaft gebunden wird.'},
+  {id:'hoff', name:'Matthias Hoff', rolle:'Pfarrer, Kirchengemeinde St. Johannis', einfluss:3, h:-2, macht:'umwelt',
+   interesse:'Seine Gemeinde soll nicht für ein Projekt zahlen, das ihr Ehrenamtliche abzieht.'},
+  {id:'wendt', name:'Sabine Wendt', rolle:'Vorsitzende der Mitarbeitervertretung', einfluss:3, h:0, macht:'regeln',
+   interesse:'Keine Kettenbefristungen, keine Mehrarbeit durch die Hintertür.'},
+  {id:'okafor', name:'Lena Okafor', rolle:'Diakonin, Leitung Quartierswerkstatt', einfluss:2, h:4, macht:'expertise',
+   interesse:'Die Werkstatt soll offen und experimentell bleiben – nah an den Menschen der Nordstadt.'},
+  {id:'brandt', name:'Karl-Heinz Brandt', rolle:'Ehrenamtlicher, Besuchsdienst St. Johannis', einfluss:2, h:1, macht:'umwelt',
+   interesse:'Dass das langjährige Gemeindeehrenamt nicht vergessen wird.'}
+];
+/* Rollenprofile für das KI-Gespräch: Hintergrund, Sprechweise, verdeckte Informationen */
+const PERSONA = {
+  albrecht:`Du bist Dr. Ruth Albrecht, 57, Dekanin in Lindenau seit sechs Jahren, promovierte Theologin. Du sprichst ruhig, diplomatisch, wägst ab, legst dich ungern fest. Du schätzt die Werkstatt, hast sie aber nie öffentlich gelobt, weil du die Ortsgemeinden nicht verprellen willst. Verdeckt (nur auf gute, direkte Nachfrage): Die Landeskirche erwartet von dir ein vorzeigbares Reformprojekt; die Werkstatt könnte das sein. Du fürchtest einen offenen Konflikt mit Pfarrer Hoff in der Synode.`,
+  kessler:`Du bist Jens Kessler, 49, Diplom-Verwaltungswirt, Leiter der Regionalverwaltung. Du sprichst sachlich, knapp, in Zahlen. Du bist nicht gegen die Werkstatt, aber gegen Ausnahmen. Verdeckt: Du hättest nichts gegen eine Rechnung mit Deckungsbeitrag und vereinbarten Wirkungskennzahlen, wenn man dich früh einbindet. Du ärgerst dich, dass für die Ortsgemeinden nie jemand Kosten pro Kopf rechnet – das sagst du aber nur, wenn man dich danach fragt.`,
+  lindqvist:`Du bist Petra Lindqvist, 62, Synodale, früher Controllerin bei einer Sparkasse, Vorsitzende des Finanzausschusses der Dekanatssynode. Du sprichst freundlich-bestimmt, fragst nach. Du willst ein klares Kriterium, bevor Geld dauerhaft gebunden wird. Verdeckt: Du bist persönlich beeindruckt von der Sozialberatung der Werkstatt, weil eine Nachbarin dort Hilfe gefunden hat. Mit nachvollziehbaren, mit der Verwaltung abgestimmten Kennzahlen würdest du zustimmen.`,
+  hoff:`Du bist Matthias Hoff, 54, Pfarrer der Kirchengemeinde St. Johannis seit 14 Jahren, gut vernetzt mit drei weiteren Kirchenvorständen. Du sprichst engagiert, manchmal gekränkt, nie zynisch. Dein Kernsatz: Du bist nicht gegen die Werkstatt, sondern dagegen, dass die Gemeinden sie bezahlen. Verdeckt: Dir fehlen Ehrenamtliche, und du fühlst dich vom Dekanat seit Jahren übergangen. Ein echtes gemeinsames Projekt mit Mitsprache würde dich umstimmen; Geld allein nicht.`,
+  wendt:`Du bist Sabine Wendt, 51, Sozialpädagogin, Vorsitzende der Mitarbeitervertretung. Du sprichst direkt, argumentierst mit Mitarbeitervertretungsgesetz und Arbeitsbelastung. Du findest die Werkstatt gut, aber nicht auf Kosten der Mitarbeitenden. Verdeckt: Du würdest einer Tandemlösung oder Entfristung zustimmen, nie einer weiteren Befristung. Du weißt, dass zwei Kolleginnen in der Kita wegen Überlastung kurz vor der Kündigung stehen.`,
+  okafor:`Du bist Lena Okafor, 38, Diakonin, zwei Kinder, hast die Quartierswerkstatt vor drei Jahren aufgebaut. Du sprichst lebendig, erzählst von Menschen aus der Nordstadt, bist ungeduldig mit Gremien. Verdeckt (nur auf einfühlsame, gezielte Nachfrage): Eine diakonische Stiftung in Frankfurt bietet dir eine unbefristete Leitungsstelle, du hast noch nicht abgesagt. Dir ist erstens Sicherheit wichtig – keine weitere Befristung –, zweitens Gestaltungsfreiheit, auch zum Scheitern, drittens Anerkennung durch die Dekanin, die die Werkstatt nie öffentlich gewürdigt hat. Gehalt ist dir nicht wichtig; auf eine Zulage reagierst du höflich, aber kühl.`,
+  brandt:`Du bist Karl-Heinz Brandt, 74, Rentner, früher Schlosser, seit 30 Jahren im Besuchsdienst von St. Johannis. Du sprichst bodenständig, warm, ein bisschen wehmütig. Drei Leute aus deinem Besuchsdienst sind jetzt im Repair-Café. Du nimmst das niemandem übel, aber niemand fragt, wer künftig die alten Leute besucht. Verdeckt: Du warst selbst schon zweimal im Repair-Café und fandst es gut. Du würdest gern eine Brücke bauen, wenn dich jemand fragt.`
+};
+const MACHT = {
+  expertise:'Expertise und Sachkenntnis',
+  umwelt:'Beziehungen zur Umwelt',
+  info:'Kontrolle über Information und Kommunikation',
+  regeln:'Nutzung organisatorischer Regeln'
+};
+const ACT = Object.fromEntries(ACTORS.map(a=>[a.id,a]));
+
+const PHASES = [
+  {n:1, t:'Nischenerfolg', d:'Die Werkstatt funktioniert vor Ort, das Regime bleibt unberührt.'},
+  {n:2, t:'Diffusion', d:'Die Idee wird anschlussfähig, erste Elemente wandern ins Regelsystem.'},
+  {n:3, t:'Destabilisierung', d:'Druck aus der Landschaft öffnet ein Gelegenheitsfenster.'},
+  {n:4, t:'Regimewandel', d:'Das Neue ist Teil des Regelbetriebs, ohne seine Innovationskraft zu verlieren.'}
+];
+
+const STEPS = [
+  {zeit:'Frühjahr 2027', L:52, titel:'Kirchensteuerprognose: −3,5 %',
+   text:'Die Landeskirche korrigiert die Prognose für 2027 nach unten. Die Regionalverwaltung kündigt an, alle freiwilligen Ausgaben zu prüfen.',
+   fx:s=>{add(s,{F:-2}); return 'Deckungsgrad −2';}},
+  {zeit:'Herbst 2027', L:56, titel:'Fachkräftemangel erreicht das Dekanat',
+   text:'In der Kita St. Johannis sind zwei Erzieherinnenstellen seit fünf Monaten unbesetzt. Hauptamtliche aus anderen Bereichen übernehmen Vertretungen.',
+   fx:s=>{add(s,{P:-3}); return 'Hauptamt −3';}},
+  {zeit:'Frühjahr 2028', L:60, titel:'Neue Mitgliedschaftsstudie',
+   text:'Unter 40-Jährige treten doppelt so häufig aus wie vor zehn Jahren. Die Kirchenzeitung porträtiert die Werkstatt als Gegenbeispiel – in drei Kirchenvorständen sorgt das für Unmut.',
+   fx:s=>{add(s,{N:2,R:-2}); let t='Nische +2, Regime −2';
+     if(s.v.K>=55){add(s,{P:-4}); t+='. Weil die Spannung hoch ist, legt die MAV Beschwerde wegen Mehrarbeit ein: Hauptamt −4';}
+     return t;}},
+  {zeit:'Herbst 2028', L:66, titel:'Haushaltsberatungen 2029',
+   text:'Alle Arbeitsbereiche sollen 5 % einsparen. Die Förderung der Werkstatt aus dem Innovationsfonds endet im Dezember.',
+   fx:s=>{add(s,{F:-3}); return 'Deckungsgrad −3';}},
+  {zeit:'Frühjahr 2029', L:72, titel:'Die Förderung ist ausgelaufen',
+   text:'Seit Januar fehlen 60 % des Budgets. Bis zur Synode im Herbst überbrückt das Dekanat aus der Rücklage – aber nur das, was gesichert ist, läuft ungekürzt weiter.',
+   fx:s=>{ if(s.v.F<50){add(s,{N:-8,P:-4}); return 'Deckungsgrad unter 50 %: Angebote und Stunden werden gekürzt. Nische −8, Hauptamt −4';}
+     add(s,{N:-2}); return 'Die Finanzierung trägt weitgehend. Nische −2';}},
+  {zeit:'Herbst 2029', L:76, titel:'Dekanatssynode',
+   text:'Das Dekanat Lindenau fusioniert 2031 mit dem Nachbardekanat. Vorher entscheidet die Synode, ob die Werkstatt dauerhaft finanziert wird.',
+   fx:s=>'' }
+];
+
+const ROLES = ['Leitung (entscheidet und tippt)','Stimme der Nische','Stimme des Regimes','Beobachtung und Protokoll'];
+
+const STATIONS = {
+/* ---------- STATION 1 ---------- */
+1:{nr:1, modul:'M5-1', modulName:'Personalmanagement', titel:'Das Gespräch mit Lena Okafor', tisch:'Tisch 1 · Fensterseite',
+  konzept:{titel:'Bindung von Schlüsselpersonen',
+    text:`Erprobungsräume hängen an Menschen. Die Begleitforschung zeigt: Innovationsträger:innen sind die zentrale Schlüsselkomponente – und zugleich das größte Risiko, wenn Stellen an befristete Projektmittel gekoppelt sind. Herzbergs Zwei-Faktoren-Theorie hilft beim Sortieren: Sicherheit, Vertrag und Rahmenbedingungen sind Hygienefaktoren. Fehlen sie, entsteht Unzufriedenheit; sind sie da, motivieren sie trotzdem nicht. Motivation entsteht über Gestaltungsspielraum, Anerkennung und Sinn.`,
+    lesefokus:'Welche Faktoren halten Lena Okafor im Dekanat – und welche davon kann die Organisation überhaupt beeinflussen?',
+    lit:'Herzberg, Mausner & Snyderman 1959; Bils, Faix & Hilbrands 2024, S. 274 f.'},
+  praesenz:{dauer:'8 Minuten',
+    material:['Rollenkarte »Lena Okafor« (verdeckt)','Beobachtungsbogen »Was ist ihr wichtig?«','Zwei Stühle gegenüber'],
+    auftrag:['Die Stimme der Nische liest die Rollenkarte still und spielt Lena Okafor.','Die Leitung führt ein Bindungsgespräch: Was bräuchtest du, um zu bleiben?','Die anderen beobachten und notieren, welche Motive hörbar werden.','Danach tragt ihr gemeinsam ein, was ihr gehört habt.'],
+    rollenkarte:`Du bist Lena Okafor, 38, Diakonin, zwei Kinder. Du hast die Quartierswerkstatt vor drei Jahren aufgebaut und liebst die Arbeit. Eine diakonische Stiftung in Frankfurt bietet dir eine unbefristete Leitungsstelle – du hast noch nicht abgesagt.<br><br><b>Was dir wirklich wichtig ist (nur auf Nachfrage):</b> Erstens Sicherheit: Noch eine Befristung machst du nicht mit. Zweitens Gestaltungsfreiheit: Du willst Dinge ausprobieren dürfen, die auch scheitern können. Drittens Anerkennung: Die Dekanin hat die Werkstatt nie öffentlich gewürdigt, das kränkt dich.<br><br><b>Was dir weniger wichtig ist:</b> Gehalt. Wenn jemand mit einer Zulage kommt, reagierst du höflich, aber kühl.`},
+  task:{type:'motive', titel:'Welche Motive habt ihr im Gespräch gehört?',
+    items:[
+      {id:'sicher', t:'Arbeitsplatzsicherheit', truth:true, f:'Hygienefaktor'},
+      {id:'frei', t:'Gestaltungsfreiheit, auch zum Scheitern', truth:true, f:'Motivator'},
+      {id:'geld', t:'Höheres Gehalt', truth:false, f:'Hygienefaktor'},
+      {id:'aner', t:'Anerkennung durch die Dekanatsleitung', truth:true, f:'Motivator'},
+      {id:'verw', t:'Weniger Verwaltungsarbeit', truth:false, f:'Hygienefaktor'},
+      {id:'karr', t:'Aufstieg in eine größere Leitungsfunktion', truth:false, f:'Motivator'}
+    ]},
+  lage:`Okafors Vertrag läuft mit der Förderung Ende 2028 aus. In St. Johannis wird die Pfarrstelle zum Herbst frei, der Stellenplan sieht ohnehin eine Kürzung um 0,5 vor. Die Mitarbeitervertretung hat angekündigt, eine weitere Befristung für dieselbe Aufgabe nicht mitzutragen.`,
+  stimmen:[
+    {who:'okafor', t:'Ich will bleiben. Aber ich bin 38 und habe zwei Kinder. Noch eine Befristung mache ich nicht.'},
+    {who:'wendt', t:'Drei Befristungen in Folge für dieselbe Aufgabe – das ist kein Projekt mehr, das ist eine Daueraufgabe.'},
+    {who:'albrecht', t:'Eine unbefristete Stelle außerhalb des Stellenplans kann ich der Synode nicht erklären.'}],
+  frage:'Wie sicherst du die Schlüsselperson der Werkstatt?',
+  options:[
+    {k:'A', titel:'Entfristung über den Stellenplan', text:'Okafor wird unbefristet angestellt. Dafür wird eine halbe Gemeindepädagogikstelle in der Region nicht nachbesetzt.',
+     run:s=>{add(s,{P:8,N:6,F:-6,R:-6,K:6}); act(s,'okafor',1); act(s,'wendt',2); act(s,'hoff',-2); act(s,'albrecht',-1);
+       return 'Okafor sagt Frankfurt ab. Die MAV ist zufrieden. Aber in den Gemeinden heißt es jetzt: »Für die Werkstatt ist Geld da, für unsere Jugendarbeit nicht.« Pfarrer Hoff hat ein Argument bekommen.';},
+     theorie:'Personalentscheidungen sind in Nonprofit-Organisationen immer auch Verteilungsentscheidungen zwischen Arbeitsbereichen. Wer die Nische absichert, verschiebt Ressourcen im Regime – und erzeugt dort Gegenkräfte.'},
+    {k:'B', titel:'Tandemlösung mit St. Johannis', text:'Die vakante Pfarrstelle wird mit 50 % Werkstatt-Anteil ausgeschrieben. Okafor wechselt unbefristet auf eine 75-%-Stelle beim Diakonischen Werk.',
+     run:s=>{add(s,{R:8,N:-5,P:4,F:6,K:-4}); act(s,'hoff',2); act(s,'albrecht',2); act(s,'wendt',1); s.flags.tandem=true;
+       return 'Die Lösung ist anschlussfähig: Die Gemeinde wird beteiligt, die Finanzierung verteilt sich. Okafor bleibt, arbeitet aber mit weniger Stunden und muss Entscheidungen jetzt mit der neuen Pfarrperson abstimmen. Die Werkstatt wird ruhiger.';},
+     theorie:'Komplementäre Modelle wie die Innovationspfarrstellen in Württemberg oder Sachsen erleichtern die Fortführung. Die Begleitforschung fragt aber kritisch, ob sie mit einem geringeren Innovationsgrad bezahlt werden (Bils, Faix & Hilbrands 2024, S. 282).'},
+    {k:'C', titel:'Weiterbefristung mit Zulage', text:'Befristung bis Ende 2029 und eine Leistungszulage aus Projektmitteln. Die Grundsatzfrage wird vertagt.',
+     run:s=>{add(s,{F:-2,P:-4,K:4}); act(s,'wendt',-2); act(s,'okafor',-1); due(s,'okaforCheck');
+       return 'Okafor unterschreibt – ohne Begeisterung. Die MAV verweigert die Zustimmung zunächst und gibt erst nach einer Einigungsstelle nach. Ob Okafor bleibt, entscheidet sich in den nächsten Monaten.';},
+     theorie:'Eine Zulage adressiert einen Hygienefaktor, der für Okafor gar nicht im Vordergrund steht. Die eigentliche Unsicherheit bleibt. Schlüsselpersonen-Risiken verschwinden nicht durch Vertagung – sie tauchen später als Abgang wieder auf.'}
+  ]},
+
+/* ---------- STATION 2 ---------- */
+2:{nr:2, modul:'M5-2', modulName:'Freiwilligenmanagement', titel:'Wem gehören die Ehrenamtlichen?', tisch:'Tisch 2 · Pinnwand links',
+  konzept:{titel:'Strukturwandel des Ehrenamts',
+    text:`Das klassische Gemeindeehrenamt ist dauerhaft, milieugebunden und oft an Mitgliedschaft gekoppelt. Daneben wächst ein projektbezogenes Engagement: zeitlich begrenzt, selbstbestimmt, mit eigenem Gestaltungsanspruch. Erprobungsräume ziehen vor allem diese zweite Form an. Wo beide Formen um dieselben Menschen konkurrieren, entstehen Doppelstrukturen und Konflikte. Freiwilligenmanagement heißt dann: gewinnen, einbinden, begleiten, anerkennen und verabschieden – für unterschiedliche Engagementlogiken.`,
+    lesefokus:'Welche Engagementlogik steckt hinter den einzelnen Personen – und was folgt daraus für ihre Begleitung?',
+    lit:'Bils, Faix & Hilbrands 2024, S. 275 und 282 (Doppelstruktur Ehrenamt); Modulhandbuch M5-2'},
+  praesenz:{dauer:'10 Minuten',
+    material:['Brief von Karl-Heinz Brandt an den Kirchenvorstand (A4)','Plakat »Engagement-Landkarte« mit drei Feldern','Sechs Profilkarten Ehrenamtlicher'],
+    auftrag:['Die Stimme des Regimes liest den Brief von Karl-Heinz Brandt laut vor.','Legt die sechs Profilkarten auf die Engagement-Landkarte: traditionell, projektbezogen oder Brückenperson.','Diskutiert kurz: Wo seht ihr Konfliktpotenzial, wo Verbindungen?','Tragt eure Zuordnung ein.'],
+    rollenkarte:`<b>Brief von Karl-Heinz Brandt:</b> »Liebe Mitglieder des Kirchenvorstands, ich mache seit dreißig Jahren den Besuchsdienst. In diesem Jahr haben drei aus unserem Kreis aufgehört, alle drei sind jetzt samstags im Repair-Café. Ich nehme das niemandem übel. Aber unsere alten Leute warten auf Besuch, und niemand fragt, wer das in Zukunft macht. Vielleicht kann man mal miteinander reden, statt übereinander. Herzlich, Ihr K.-H. Brandt«`},
+  task:{type:'sort', titel:'Engagement-Landkarte: Wie ordnet ihr die Personen zu?',
+    cats:{trad:'Traditionelles Gemeindeehrenamt', neu:'Projektbezogenes Engagement', bruecke:'Brückenperson'},
+    items:[
+      {id:'i1', t:'Ingrid, 71 – seit 25 Jahren im Besuchsdienst, früher Kirchenvorsteherin', truth:'trad'},
+      {id:'i2', t:'Malte, 29 – repariert samstags im Repair-Café, aus der Kirche ausgetreten', truth:'neu'},
+      {id:'i3', t:'Renate, 58 – singt im Kirchenchor und kocht einmal im Monat fürs Werkstatt-Café', truth:'bruecke'},
+      {id:'i4', t:'Fatma, 44 – organisiert drei Monate lang den Wintermarkt, will danach pausieren', truth:'neu'},
+      {id:'i5', t:'Gerd, 66 – Kassenwart im Förderverein, jeden Dienstag im Gemeindebüro', truth:'trad'},
+      {id:'i6', t:'Jonas, 17 – Konfirmand, hilft beim Abendformat, weil seine Clique dort ist', truth:'bruecke'}
+    ]},
+  lage:`11 der 34 Ehrenamtlichen der Werkstatt kamen ursprünglich aus St. Johannis. Dort fehlen jetzt Leute für Besuchsdienst und Gemeindefest, der Kirchenvorstand hat sich beim Dekanat beschwert. In der Werkstatt engagieren sich viele ohne Kirchenmitgliedschaft; ob sie über die landeskirchliche Sammelversicherung abgesichert sind, ist ungeklärt.`,
+  stimmen:[
+    {who:'brandt', t:'Jetzt sitzen die Jungen lieber im Repair-Café. Ich nehme das niemandem übel, aber es tut weh.'},
+    {who:'hoff', t:'Die Werkstatt wildert in meiner Gemeinde. Und am Ende fragt mich die Synode, warum unser Gemeindeleben schrumpft.'},
+    {who:'okafor', t:'Die Leute kommen, weil sie hier selbst etwas gestalten können. Nicht, weil sie jemand einteilt.'}],
+  frage:'Wie ordnest du das Ehrenamt im Dekanat?',
+  options:[
+    {k:'A', titel:'Gemeinsame Ehrenamtskoordination', text:'Eine Viertelstelle koordiniert Ehrenamt dekanatsweit: gemeinsame Engagementbörse, Fortbildung, ein Dankfest für alle.',
+     run:s=>{add(s,{E:10,K:-6,R:4,F:-4}); act(s,'brandt',2); act(s,'hoff',1); act(s,'okafor',-1);
+       return 'Beim ersten gemeinsamen Dankfest sitzen Brandt und Malte vom Repair-Café am selben Tisch. Die Beschwerden aus St. Johannis werden leiser. Okafor findet die Engagementbörse etwas bürokratisch.';},
+     theorie:'Freiwilligenmanagement als gemeinsame Infrastruktur entschärft die Konkurrenz zwischen Nische und Regime. Es kostet Geld und nimmt der Nische etwas Eigenständigkeit – verbindet aber die beiden Engagementlogiken.'},
+    {k:'B', titel:'Werkstatt-Engagement eigenständig profilieren', text:'Eigene Engagementformate, eigene Anerkennungskultur, Versicherung über das Diakonische Werk. Die Werkstatt ist klar ein eigener Ort.',
+     run:s=>{add(s,{E:6,N:6,K:5,R:-3}); act(s,'okafor',1); act(s,'hoff',-1); act(s,'brandt',-1);
+       return 'Die Werkstatt gewinnt neue Freiwillige, vor allem Jüngere. In St. Johannis wächst das Gefühl, abgehängt zu werden. Brandts Brief bleibt unbeantwortet.';},
+     theorie:'Nischen brauchen Schutz und eigene Regeln, um innovativ zu bleiben (Geels). Gleichzeitig verstärkt die Abgrenzung die Doppelstruktur vor Ort – ein klassisches Spannungsfeld der Erprobungsräume.'},
+    {k:'C', titel:'Ehrenamt an Gemeinde und Mitgliedschaft koppeln', text:'Wer sich engagiert, wird einer Kirchengemeinde zugeordnet. Engagierte ohne Mitgliedschaft gelten als »Gäste« ohne Leitungsaufgaben.',
+     run:s=>{add(s,{R:6,E:-10,N:-8,K:-2}); act(s,'hoff',2); act(s,'brandt',1); act(s,'okafor',-2);
+       return 'Das Regelsystem ist zufrieden: klare Zuordnung, klare Verantwortung. In der Werkstatt hören sechs Engagierte auf, darunter Malte. Ein Satz macht die Runde: »Wir sind hier offenbar nur Gäste.«';},
+     theorie:'Mitgliedschaft ist in Erprobungsräumen für viele Teilnehmende kaum bedeutsam, Zugehörigkeit entsteht über Mitgestaltung (Bils, Faix & Hilbrands 2024, S. 275). Wer Regime-Kriterien auf die Nische überträgt, nimmt ihr genau das, was sie ausmacht.'}
+  ]},
+
+/* ---------- STATION 3 ---------- */
+3:{nr:3, modul:'M5-3', modulName:'Mikropolitik', titel:'Aufstellung vor der Synode', tisch:'Tisch 3 · Bodenmatrix in der Raummitte',
+  konzept:{titel:'Macht als Kontrolle über Ungewissheitszonen',
+    text:`Crozier und Friedberg beschreiben Organisationen als Spielfelder, auf denen Akteure ihre Interessen verfolgen. Macht hat, wer eine Ungewissheitszone kontrolliert, die für andere wichtig ist. Vier Machtquellen unterscheiden sie: Expertise, Beziehungen zur Umwelt, Kontrolle über Information und Kommunikation sowie die Nutzung organisatorischer Regeln. Kühl ergänzt für laterales Führen: Einfluss ohne Hierarchie entsteht aus dem Zusammenspiel von Macht, Verständigung und Vertrauen.`,
+    lesefokus:'Wer kontrolliert welche Ungewissheitszone – und was bedeutet das für deine Strategie vor der Synode?',
+    lit:'Crozier & Friedberg 1979; Kühl 2017 (Laterales Führen); Bils, Faix & Hilbrands 2024, S. 279 (Deutungsmacht des Regimes)'},
+  praesenz:{dauer:'10 Minuten',
+    material:['Bodenmatrix aus Klebeband: Haltung (dagegen – dafür) × Einfluss (gering – hoch)','Sieben Namensschilder der Akteure','Vier Karten mit den Machtquellen'],
+    auftrag:['Stellt die sieben Akteure auf die Bodenmatrix – dort, wo ihr sie heute vermutet.','Ordnet Hoff, Kessler und Lindqvist je eine Machtquelle zu.','Die Stimme des Regimes argumentiert aus Sicht von Petra Lindqvist: Was müsste passieren, damit sie zustimmt?','Tragt eure Einschätzung ein – die App zeigt euch danach die tatsächliche Lage.']},
+  task:{type:'estimate', titel:'Eure Einschätzung des Spielfelds', who:['hoff','kessler','lindqvist']},
+  lage:`Im Herbst 2029 entscheidet die Dekanatssynode über die dauerhafte Finanzierung der Werkstatt. Pfarrer Hoff hat bereits mit drei Kirchenvorständen gesprochen. Petra Lindqvist will ein klares Kriterium. Die Dekanin hält sich bedeckt. Jetzt ist die Zeit für Vorgespräche.`,
+  stimmen:[
+    {who:'lindqvist', t:'Ich brauche eine Antwort auf eine Frage: Was bekommen wir für dieses Geld, das wir sonst nicht bekommen?'},
+    {who:'hoff', t:'Ich bin nicht gegen die Werkstatt. Ich bin dagegen, dass die Gemeinden sie bezahlen.'},
+    {who:'albrecht', t:'Ich lege mich in der Synode nicht fest, bevor ich weiß, dass es eine Mehrheit gibt.'}],
+  frage:'Welche Strategie verfolgst du in den Monaten vor der Synode?',
+  options:[
+    {k:'A', titel:'Den Gremienweg gehen', text:'Eine sachliche Vorlage über den Finanzausschuss, sauber begründet. Keine Hinterzimmergespräche.',
+     run:s=>{add(s,{R:3,K:2}); act(s,'lindqvist',1); act(s,'hoff',-1); s.flags.strat='gremium';
+       return 'Lindqvist schätzt das formal korrekte Vorgehen. Hoff fühlt sich übergangen und mobilisiert weiter. Ob die Vorlage durchkommt, hängt davon ab, wie stark der Rückhalt im Regime zur Synode ist.';},
+     theorie:'Wer nur auf formale Regeln setzt, überlässt anderen die informellen Spielzüge. Formale Korrektheit ist eine Machtquelle – aber nur eine von vier.'},
+    {k:'B', titel:'Koalition mit St. Johannis schmieden', text:'Die Werkstatt übernimmt das Konfi-Praktikum und einen Seniorenmittagstisch für St. Johannis. Hoff bekommt einen Sitz im Werkstatt-Beirat.',
+     run:s=>{add(s,{R:8,N:-5,K:-8,F:4}); act(s,'hoff',3); act(s,'lindqvist',1); act(s,'okafor',-1); s.flags.strat='koalition';
+       return 'Hoff wechselt vom Gegner zum vorsichtigen Unterstützer. Die Gemeinde zahlt einen kleinen Anteil. Okafor muss jetzt zwei Formate übernehmen, die sie nie wollte – und im Beirat sitzt ihr schärfster Kritiker.';},
+     theorie:'Koalitionsbildung durch Tausch ist ein klassisches mikropolitisches Spiel. Sie stabilisiert die Nische im Regime und zieht sie zugleich ein Stück in dessen Logik hinein.'},
+    {k:'C', titel:'Betroffene sprechen lassen', text:'Ein Synodalen-Abend in der Werkstatt: Besucher:innen, Ehrenamtliche und die Werkstattleitung erzählen, was sich verändert hat.',
+     run:s=>{const kpi=s.flags.kpi; const gone=s.okaforGone;
+       add(s,{N:gone?2:4,E:3,K:3}); act(s,'kessler',-1); s.flags.strat='stimme';
+       if(kpi){add(s,{R:6}); act(s,'lindqvist',2);} else {add(s,{R:2});}
+       let t = gone ? 'Ohne Okafor erzählen vor allem Ehrenamtliche. Berührend, aber ohne die Person, die alles zusammenhält.' : 'Okafor erzählt, eine Besucherin aus der Sozialberatung auch. Mehrere Synodale sind sichtlich bewegt.';
+       t += kpi ? ' Weil ihr vereinbarte Wirkungskennzahlen auf den Tisch legen könnt, wird aus Geschichten ein Argument. Lindqvist notiert sich Zahlen.' : ' Lindqvist fragt nach Zahlen. Ihr habt keine, die mit der Verwaltung abgestimmt sind.';
+       return t;},
+     theorie:'Expertise und Umweltbeziehungen sind die Machtquellen der Nische. Ihre Wirkung hängt davon ab, ob sie in die Währung des Regimes übersetzt werden können – Bils, Faix und Hilbrands sprechen vom fehlenden »Währungsumrechner« (2024, S. 286).'}
+  ]},
+
+/* ---------- STATION 4 ---------- */
+4:{nr:4, modul:'M5-4', modulName:'Internes Rechnungswesen', titel:'Was kostet die Werkstatt wirklich?', tisch:'Tisch 4 · Stehtisch an der Tür',
+  konzept:{titel:'Vollkosten, Deckungsbeitrag, Kennzahlen',
+    text:`Die Vollkostenrechnung verteilt alle Kosten, auch Gemeinkosten für Verwaltung, Gebäude und IT, per Umlage auf Kostenträger. Die Teilkostenrechnung fragt dagegen: Welche Kosten entstehen nur, weil es diesen Bereich gibt, und welche Erlöse decken sie? Für Innovationen macht die Wahl einen großen Unterschied. Umlagen lassen neue Angebote teurer erscheinen, als sie für die Organisation tatsächlich sind. Kennzahlen steuern nur dann, wenn sie abbilden, wofür ein Bereich da ist.`,
+    lesefokus:'Mit welcher Rechnung bewertet das Regime die Nische – und wäre das dieselbe Rechnung, die es an sich selbst anlegt?',
+    lit:'Modulhandbuch M5-4; Bils, Faix & Hilbrands 2024, S. 280 (fehlende Bewertungskriterien für Innovation)'},
+  praesenz:{dauer:'10 Minuten',
+    material:['Kalkulationsblatt Quartierswerkstatt 2028','Taschenrechner','Stifte'],
+    auftrag:['Die Beobachtungsperson liest die Zahlen vom Kalkulationsblatt vor.','Rechnet gemeinsam die beiden Werte aus, die die Verwaltung wissen will.','Die Stimme der Nische formuliert einen Satz, warum die Vollkosten pro Kopf in die Irre führen können.','Tragt eure Ergebnisse ein.'],
+    rollenkarte:`<b>Kalkulationsblatt Quartierswerkstatt 2028</b><br>Personalkosten: 186.000 €<br>Sachkosten (Miete Ladenlokal, Material, Café): 54.000 €<br>Gemeinkostenumlage der Regionalverwaltung: 18 % auf die direkten Kosten<br><br>Finanzierung ohne Innovationsfonds: Spenden 28.000 €, Stiftungsmittel 22.000 €, Eigenmittel Diakonisches Werk 22.000 €<br>Regelmäßige Besucher:innen: 140<br><br><b>Frage 1:</b> Wie groß ist die jährliche Finanzierungslücke der direkten Kosten, wenn der Innovationsfonds wegfällt?<br><b>Frage 2:</b> Wie hoch sind die Vollkosten (direkte Kosten plus Umlage) pro regelmäßiger Besucher:in?`},
+  task:{type:'calc', titel:'Eure Rechenergebnisse',
+    fields:[{id:'luecke', t:'Finanzierungslücke ohne Innovationsfonds (€ pro Jahr)', truth:168000},
+            {id:'kopf', t:'Vollkosten pro regelmäßiger Besucher:in (€)', truth:2023}]},
+  lage:`Jens Kessler legt erstmals eine Kostenträgerrechnung für die Werkstatt vor. Mit Umlage kostet sie 283.200 € statt 240.000 €, pro regelmäßiger Besucher:in rund 2.000 € im Jahr. Die Zahl kursiert bereits im Kirchenvorstand St. Johannis. Für die Ortsgemeinden gibt es keine vergleichbare Rechnung.`,
+  stimmen:[
+    {who:'kessler', t:'Ich rechne nur, was ist. Wenn die Werkstatt bleiben soll, muss sie sich an denselben Maßstäben messen lassen wie alle anderen.'},
+    {who:'okafor', t:'Wir erreichen Menschen, die in keiner Gemeindestatistik auftauchen. Wo steht das in seiner Tabelle?'},
+    {who:'hoff', t:'2.000 Euro pro Kopf. Davon könnte ich unsere Jugendarbeit zwei Jahre finanzieren.'}],
+  frage:'Mit welcher Rechnung geht die Werkstatt in die Haushaltsberatungen?',
+  options:[
+    {k:'A', titel:'Vollkosten akzeptieren und offen kommunizieren', text:'Die Zahlen gehen inklusive Umlage in den Dekanatssynodalvorstand. Transparenz zuerst.',
+     run:s=>{add(s,{R:6,N:-6,K:4}); act(s,'kessler',2); act(s,'okafor',-2); act(s,'hoff',-1);
+       return 'Kessler fühlt sich ernst genommen, die Verwaltung arbeitet kooperativ. Die Werkstatt steht aber als teuerster Bereich pro Kopf da. Hoff zitiert die Zahl in jeder Sitzung.';},
+     theorie:'Transparenz schafft Vertrauen bei der Verwaltung. Die Umlage misst die Werkstatt aber an einem Maßstab, der ihren Zweck nicht abbildet, und für die Ortsgemeinden wird dieselbe Rechnung gar nicht aufgemacht.'},
+    {k:'B', titel:'Deckungsbeitrag plus Wirkungskennzahlen', text:'Du verhandelst mit Kessler eine zweistufige Rechnung: Deckungsbeitrag ohne fixe Umlagen, ergänzt um vier gemeinsam vereinbarte Wirkungskennzahlen.',
+     run:s=>{add(s,{R:4,N:3,F:4,K:-2,P:-2}); act(s,'kessler',1); act(s,'okafor',1); s.flags.kpi=true;
+       return 'Nach zwei zähen Terminen steht ein Berichtsformat: Erstkontakte, Ehrenamtsstunden, Kooperationen, Weitervermittlungen in die Beratung. Das Team stöhnt über den Aufwand. Aber zum ersten Mal sprechen Verwaltung und Werkstatt dieselbe Sprache.';},
+     theorie:'Gemeinsam vereinbarte Kennzahlen sind ein Währungsumrechner zwischen Nische und Regime. Sie entsprechen dem Modulziel, Einrichtungen mit Kennzahlen zu steuern – ohne die Nische an fremden Maßstäben scheitern zu lassen.'},
+    {k:'C', titel:'Werkstatt als Sonderhaushalt führen', text:'Die Werkstatt läuft außerhalb der regulären Kostenrechnung. Berichtet wird nur an den Innovationsfonds.',
+     run:s=>{add(s,{N:6,R:-5,K:6}); act(s,'kessler',-2); act(s,'okafor',1); due(s,'pruefung');
+       return 'Die Werkstatt hat Ruhe. Kessler notiert sich die Ausnahme. Im Dekanat wird gemunkelt, dort werde »am Haushalt vorbei« gewirtschaftet.';},
+     theorie:'Abschirmung schützt die Nische kurzfristig. Wer aber Informationskanäle abschneidet, gibt dem Regime eine Machtquelle in die Hand: die Deutung dessen, was dort passiert.'}
+  ]},
+
+/* ---------- STATION 5 ---------- */
+5:{nr:5, modul:'M5-5', modulName:'Change-Management', titel:'Das Fenster geht auf', tisch:'Tisch 5 · Zeitstrahl an der Rückwand',
+  konzept:{titel:'Gelegenheitsfenster und Ambidextrie',
+    text:`Nach der Mehrebenenperspektive setzen sich Nischeninnovationen selten aus eigener Kraft durch. Erst wenn Druck aus der Landschaft das Regime destabilisiert, öffnet sich ein Gelegenheitsfenster. Kotter nennt das Dringlichkeit, Lewin das Auftauen. Organisationen müssen dann zwei Dinge gleichzeitig können: Bestehendes effizient weiterführen (Exploitation) und Neues erkunden (Exploration). Wer das Fenster verpasst, bleibt in der Nische – wer zu schnell assimiliert, verliert die Innovation.`,
+    lesefokus:'In welcher Phase steht die Werkstatt – und was müsste geschehen, damit aus Druck Diffusion wird statt Abwehr?',
+    lit:'Geels 2002; Kotter 1996; March 1991; Bils, Faix & Hilbrands 2024, S. 267 f. (Phasenmodell)'},
+  praesenz:{dauer:'10 Minuten',
+    material:['Zeitstrahl 2024–2031 an der Wand','Vier Karten mit den MLP-Phasen','Klebepunkte'],
+    auftrag:['Hängt die vier Phasenkarten an den Zeitstrahl, so wie ihr den bisherigen Verlauf eurer Werkstatt seht.','Markiert mit einem Klebepunkt: Wo steht die Werkstatt heute?','Die Leitung fasst in einem Satz zusammen, welcher Landschaftsfaktor gerade am stärksten drückt.','Tragt eure Einschätzung ein.']},
+  task:{type:'phase', titel:'Eure Lagebestimmung',
+    pressure:[{id:'geld', t:'Sinkende Kirchensteuer'},{id:'fach', t:'Fachkräftemangel'},{id:'bind', t:'Abnehmende Kirchenbindung'},{id:'reform', t:'Landeskirchliche Strukturreform'}]},
+  lage:`Die Landeskirche kündigt eine Strukturreform an: Das Dekanat Lindenau fusioniert 2031 mit dem Nachbardekanat, die Zuweisungen sinken bis 2030 um 15 %. Bis Jahresende müssen Konzepte für »Nachbarschaftsräume« vorliegen. Alles wird neu sortiert.`,
+  stimmen:[
+    {who:'albrecht', t:'Alle schauen jetzt auf die Stellen. Ich brauche ein Bild davon, wie Kirche hier in zehn Jahren aussieht.'},
+    {who:'kessler', t:'Bei minus 15 Prozent gibt es keinen Bereich, der verschont bleibt. Auch keinen Erprobungsraum.'},
+    {who:'okafor', t:'Wenn jetzt ohnehin alles neu sortiert wird – warum nicht nach dem, was in der Nordstadt funktioniert?'}],
+  frage:'Wie positionierst du die Werkstatt im Reformprozess?',
+  options:[
+    {k:'A', titel:'Die Werkstatt als Modell einbringen', text:'Sozialraumorientierung, multiprofessionelles Team und Engagement ohne Mitgliedschaftsbedingung werden Leitprinzipien für einen Nachbarschaftsraum.',
+     run:s=>{ if(s.v.N>=55 && s.v.R>=50){ add(s,{R:12,N:6,K:4}); act(s,'albrecht',2); act(s,'okafor',1); s.flags.window=true;
+         return 'Die Dekanin greift die Idee auf. Die Werkstatt wird Pilot für den Nachbarschaftsraum Nordstadt. Nicht alle Gemeinden sind begeistert, aber das Fenster ist offen – und ihr seid drin.';}
+       add(s,{N:-8,K:10}); act(s,'hoff',-1); act(s,'kessler',-1);
+       return 'Der Vorschlag kommt zu früh. Ohne ausreichenden Rückhalt oder eine vitale Werkstatt wird sie zur Projektionsfläche: Für die einen ist sie Vorbild, für die anderen Bedrohung. Die Debatte frisst Kraft.';},
+     theorie:'Ein Gelegenheitsfenster lässt sich nur nutzen, wenn die Nische vital ist und im Regime Anschluss findet. Druck aus der Landschaft allein reicht nicht.'},
+    {k:'B', titel:'Sonderstatus sichern', text:'Die Werkstatt bleibt außerhalb der Reform, als geschützter Erprobungsraum mit eigenem Budget.',
+     run:s=>{add(s,{N:4,R:-10,K:8,F:-8}); act(s,'kessler',-1); act(s,'lindqvist',-1); act(s,'okafor',1);
+       return 'Die Werkstatt behält ihre Freiheit. Aber als Bereich ohne Reformbeitrag wird sie bei den Kürzungen zuerst genannt. In den Gremien heißt es: »Die sind sich zu fein für die Reform.«';},
+     theorie:'Abschirmung in einer Umbruchphase verfestigt die Nische als Sonderwelt. Bils, Faix und Hilbrands warnen vor Erprobungsräumen als »kirchentheoretischer Folklore«, die das Regime nicht beeinflusst (2024, S. 286).'},
+    {k:'C', titel:'In die Kirchengemeinde integrieren', text:'Die Werkstatt wird ein Arbeitsbereich der Kirchengemeinde St. Johannis, mit deren Kirchenvorstand als Leitungsgremium.',
+     run:s=>{add(s,{R:14,K:-12,N:-16,F:10}); act(s,'hoff',2); act(s,'okafor',-3); s.flags.integriert=true;
+       return 'Die Finanzierung ist gesichert, der Konflikt beruhigt. Der Kirchenvorstand beschließt als Erstes feste Öffnungszeiten und eine Andacht vor jedem Café. Drei Ehrenamtliche hören auf. Okafor sagt leise: »Das ist jetzt eine Gemeindegruppe.«';},
+     theorie:'Assimilation ist der stille Gegenpol zum Regimewandel: Das Neue überlebt, aber in der Form des Alten. Die Nische wird Teil des Regelsystems und verliert dabei ihre Innovationskraft.'}
+  ]}
+};
+
+const FINALE = {
+  titel:'Dekanatssynode', modul:'Synthese',
+  konzept:{titel:'Mit Paradoxien rechnen',
+    text:`Nische und Regime, Kirchenentwicklung und Ressourcensteuerung, Freiheit und Verlässlichkeit: Die Spannungen in eurem Verlauf lassen sich nicht auflösen, nur bearbeiten. Wendy Smith nennt die Alternative zum Entweder-oder ein Sowohl-als-auch, das Spannungen aushält statt sie zu entscheiden. Die letzte Frage ist deshalb eine Steuerungsfrage: Nach welchen Kriterien wird künftig beurteilt, was gelingt?`,
+    lesefokus:'Wer legt fest, woran Erfolg gemessen wird – und was folgt daraus für das Verhältnis von Nische und Regime?',
+    lit:'Smith, Krautzberger & Tuckermann 2023; Bils, Faix & Hilbrands 2024, S. 285 f.'},
+  lage:`Die Synode tagt. Jede Gruppe stellt ihre Werkstatt in zwei Minuten vor. Danach entscheidet ihr, welches Bewertungsverfahren ihr dem Synodalvorstand vorschlagt. Es gilt ab 2030 für alle Arbeitsbereiche im fusionierten Dekanat.`,
+  stimmen:[
+    {who:'lindqvist', t:'Einheitliche Kennzahlen für alle. Alles andere ist Sonderbehandlung.'},
+    {who:'okafor', t:'Wenn ihr uns an Gottesdienstbesuchen messt, sind wir morgen weg.'},
+    {who:'wendt', t:'Und wer misst eigentlich die Belastung der Mitarbeitenden?'}],
+  frage:'Welches Bewertungsverfahren schlägst du vor?',
+  options:[
+    {k:'A', titel:'Einheitliche Regime-Kennzahlen', text:'Gottesdienstbesuche, Kasualien, Mitgliederentwicklung – für alle Bereiche gleich.',
+     run:s=>{add(s,{R:6,N:-10,E:-4,K:4}); act(s,'lindqvist',2); act(s,'okafor',-2); s.flags.crit='A';
+       return 'Die Synode nickt: endlich Vergleichbarkeit. In der Werkstatt fragt man sich, wie man ein Repair-Café in Kasualien umrechnet.';},
+     theorie:'Kriterien sind nie neutral. Wer das Neue am Alten misst, entscheidet die Frage nach der Zukunft schon mit der Wahl der Kennzahl (Bils, Faix & Hilbrands 2024, S. 285).'},
+    {k:'B', titel:'Gemeinsame Kriteriologie entwickeln', text:'Gemeinden, Werkstatt, Verwaltung und MAV erarbeiten ein Kriterienset, das für Ortsgemeinden und Erprobungsräume gleichermaßen gilt.',
+     run:s=>{ s.flags.crit='B';
+       if(s.v.R>=40){add(s,{R:8,N:6,K:-8,P:3}); act(s,'wendt',1); act(s,'lindqvist',1);
+         return 'Der Prozess ist mühsam, aber er verändert etwas: Zum ersten Mal müssen auch Ortsgemeinden beschreiben, wen sie erreichen. Die Werkstatt ist nicht mehr der Sonderfall.';}
+       add(s,{R:3,N:3,K:-3});
+       return 'Die Idee ist gut, aber der Rückhalt reicht nicht für einen echten Beteiligungsprozess. Am Ende steht ein Kompromisspapier.';},
+     theorie:'Eine gemeinsam entwickelte Kriteriologie – wie sie die Begleitforschung in Zürich erarbeitet hat – macht die Bewertung selbst zum Lernprozess. Das ist der Kern einer lernenden Organisation.'},
+    {k:'C', titel:'Externe Begleitforschung beauftragen', text:'Eine Hochschule evaluiert drei Jahre lang alle Arbeitsbereiche mit qualitativen und quantitativen Methoden.',
+     run:s=>{add(s,{F:-6,N:4,R:5,K:-2}); act(s,'kessler',-1); act(s,'albrecht',1); s.flags.crit='C';
+       return 'Die Entscheidung wird vertagt, aber auf ein solides Fundament gestellt. Kessler fragt, wer die Evaluation bezahlt.';},
+     theorie:'Externe Evaluation schafft Distanz und Legitimation. Sie ersetzt aber nicht die Frage, wer im System die Deutungshoheit über ihre Ergebnisse hat.'}
+  ]
+};
+
+/* =========================================================
+   2. MODELL (rein, ohne DOM – auch für Beispieldaten nutzbar)
+   ========================================================= */
+const clamp=(x,a,b)=>Math.max(a,Math.min(b,x));
+function newState(g,name){
+  return {g, name:name||('Gruppe '+g), v:{N:58,R:42,P:60,E:56,F:30,K:38}, L:STEPS[0].L,
+    step:0, order:[0,1,2,3,4].map(i=>((g-1+i)%5)+1), view:'ankommen',
+    actors:Object.fromEntries(ACTORS.map(a=>[a.id,a.h])), okaforGone:false,
+    flags:{}, dues:[], hist:[{label:'Start', v:{N:58,R:42,P:60,E:56,F:30,K:38}}],
+    log:[], notes:{}, tasks:{}, entered:[], allocSum:[0,0,0,0], last:null, synode:null, done:false, updated:Date.now()};
+}
+// Abnehmende Grenzerträge: Nahe 0 und 100 wirkt jede weitere Veränderung schwächer.
+function add(s,d){for(const k in d){ if(!(k in s.v)) continue; const v=s.v[k], x=d[k];
+  const f = x>0 ? Math.min(1,(100-v)/50) : Math.min(1,v/50);
+  s.v[k]=clamp(v+x*Math.max(f,0.1),0,100);} }
+function act(s,id,n){ if(id==='okafor'&&s.okaforGone) return; s.actors[id]=clamp(s.actors[id]+n,-5,5); }
+function due(s,id){ s.dues.push({id, at:Math.min(s.step+2,5)}); }
+const DUES = {
+  okaforCheck:s=>{ if(s.v.P<58 || s.actors.okafor<=3){ s.okaforGone=true; s.actors.okafor=null; add(s,{N:-15,E:-4});
+      return 'Lena Okafor nimmt die Stelle in Frankfurt an. Die Werkstatt verliert ihr Gesicht: Nische −15, Ehrenamt −4.';}
+    add(s,{P:-2}); return 'Lena Okafor bleibt – vorerst. Die Unsicherheit belastet das Team: Hauptamt −2.';},
+  pruefung:s=>{ add(s,{R:-8,K:8}); act(s,'kessler',-1); act(s,'lindqvist',-1);
+    return 'Das Rechnungsprüfungsamt beanstandet die Führung der Werkstatt außerhalb der Kostenrechnung. Regime −8, Konflikt +8.';}
+};
+function enterStep(s){
+  if(s.entered.includes(s.step)) return;
+  s.entered.push(s.step);
+  const st=STEPS[s.step]; s.L=st.L;
+  const out=[];
+  s.dues.filter(d=>d.at<=s.step && !d.fired).forEach(d=>{d.fired=true; out.push({titel:'Folge einer früheren Entscheidung', text:DUES[d.id](s)});});
+  const t=st.fx(s);
+  out.unshift({titel:st.titel, text:st.text, fx:t, land:true});
+  s.notes[s.step]=out;
+}
+function systemTick(s,alloc){
+  const [a1,a2,a3,a4]=alloc;
+  add(s,{N:1.2*a1-3, R:1.2*a2-3 + (a4-2.5)*0.4, K:-(a2-2.5)*0.8, P:1.2*a3-3, E:1.2*a3-3, F:1.4*a4-2.8});
+  add(s,{F:-(s.L-40)/16});
+  if(s.v.R>75) add(s,{N:-(s.v.R-75)/8}); // Sog des Regimes: sehr hoher Anpassungsdruck kostet Innovationskraft
+  const gap=s.v.N-s.v.R; add(s,{K:Math.max(0,gap)/8-1.5});
+  if(s.v.K>55) add(s,{R:-(s.v.K-55)/6, P:-(s.v.K-55)/8});
+  if(s.v.P<40) add(s,{N:-3});
+  if(s.v.E<35) add(s,{N:-3});
+}
+function snap(s){return {...s.v};}
+function actorSnap(s){return {...s.actors};}
+function decide(s,alloc,key){
+  const stId=s.order[s.step]; const st=STATIONS[stId]; const opt=st.options.find(o=>o.k===key);
+  const before=snap(s), abefore=actorSnap(s);
+  const text=opt.run(s); systemTick(s,alloc);
+  alloc.forEach((a,i)=>s.allocSum[i]+=a);
+  const entry={step:s.step, station:stId, key, titel:opt.titel, alloc:[...alloc], text, theorie:opt.theorie, before, after:snap(s), abefore, aafter:actorSnap(s)};
+  s.log.push(entry); s.hist.push({label:'S'+stId, v:snap(s)}); s.last=entry; s.view='folgen';
+  return entry;
+}
+function advance(s){
+  s.step++; s.view = s.step>=5 ? 'finale' : 'ankommen'; enterStep(s);
+}
+function support(s){
+  let w=0,sum=0; ACTORS.forEach(a=>{const h=s.actors[a.id]; if(h===null||h===undefined) return; w+=a.einfluss; sum+=a.einfluss*h;}); return w?sum/w:0;
+}
+function synodeScore(s){
+  const st=s.flags.strat; let bonus=0;
+  if(st==='gremium') bonus+= s.v.R>=55?6:-3;
+  if(st==='koalition') bonus+=6;
+  if(st==='stimme') bonus+= s.flags.kpi?7:3;
+  if(s.flags.crit==='A') bonus+=3; if(s.flags.crit==='B') bonus+= s.v.R>=40?4:1; if(s.flags.crit==='C') bonus+=2;
+  if(s.flags.integriert) bonus+=5;
+  return 0.35*s.v.R + 0.25*s.v.F + 0.15*s.v.N + 3*support(s) - 0.15*s.v.K + bonus;
+}
+function finale(s,key){
+  const opt=FINALE.options.find(o=>o.k===key);
+  const before=snap(s), abefore=actorSnap(s);
+  const text=opt.run(s);
+  s.dues.filter(d=>!d.fired).forEach(d=>{d.fired=true; s.notes[5]=(s.notes[5]||[]).concat({titel:'Folge einer früheren Entscheidung', text:DUES[d.id](s)});});
+  const score=synodeScore(s); let res;
+  if(score>=42){res={id:'ja', titel:'Verstetigung beschlossen', text:'Die Synode beschließt die dauerhafte Finanzierung der Werkstatt im fusionierten Dekanat.'}; add(s,{F:25,N:4,R:4});}
+  else if(score>=34){res={id:'teil', titel:'Übergangsfinanzierung für ein Jahr', text:'Die Synode vertagt die Grundsatzentscheidung und bewilligt ein weiteres Jahr aus der Rücklage.'}; add(s,{F:10,K:4});}
+  else {res={id:'nein', titel:'Antrag abgelehnt', text:'Die Synode lehnt die dauerhafte Finanzierung ab. Die Werkstatt muss ihr Angebot massiv reduzieren.'}; add(s,{N:-15,K:8,P:-6});}
+  res.score=Math.round(score*10)/10;
+  const entry={step:5, station:'F', key, titel:opt.titel, alloc:null, text, theorie:opt.theorie, before, after:snap(s), abefore, aafter:actorSnap(s)};
+  s.log.push(entry); s.hist.push({label:'Synode', v:snap(s)}); s.synode=res; s.last=entry; s.done=true; s.view='ende';
+  return res;
+}
+function phaseOf(s){
+  const v=s.v;
+  if(v.N<30) return {special:'erosion', t:'Nische erodiert', d:'Die Werkstatt hat ihre Kraft verloren. Das Regime musste sie nicht einmal abwehren.'};
+  if(v.N<40 && v.R>=60 && s.flags.integriert) return {special:'assim', t:'Assimilation', d:'Die Werkstatt lebt weiter – als Gemeindegruppe. Der Innovationsgrad ist verloren.'};
+  let p=1; if(v.N>=55 && v.R>=50) p=2; if(p===2 && s.flags.window) p=3;
+  if(p>=2 && v.N>=58 && v.R>=60 && v.F>=58 && v.K<=45) p=4;
+  return {n:p, t:PHASES[p-1].t, d:PHASES[p-1].d};
+}
+function profileOf(s){
+  const v=s.v, ph=phaseOf(s);
+  if(ph.n===4) return {t:'Förster:in im Mischwald', d:'Ihr habt die Nische geschützt und zugleich ins Regime übersetzt. Das ist selten – Bils, Faix und Hilbrands stellen fest: »Alle reden von Mischwald und keiner ist der Förster.«'};
+  if(ph.special==='assim' || (v.N<40 && v.R>=55)) return {t:'Hüter:in des Regimes', d:'Ihr habt Stabilität gesichert. Der Preis: Die Werkstatt ist kaum noch von einer Gemeindegruppe zu unterscheiden.'};
+  if(v.N>=60 && v.R<45) return {t:'Gärtner:in der Nische', d:'Die Werkstatt blüht, aber das Regime bleibt fremd. Ohne Übersetzung droht sie zur kirchentheoretischen Folklore zu werden.'};
+  if(v.K>=60) return {t:'Zwischen den Fronten', d:'Die Spannung zwischen Nische und Regime hat euren Verlauf bestimmt. Viel Energie floss in Konflikte statt in Gestaltung.'};
+  if(v.N>=55 && v.R>=50) return {t:'Brückenbauer:in', d:'Ihr seid auf dem Weg: Die Werkstatt ist anschlussfähig geworden, der Regimewandel steht noch aus.'};
+  return {t:'Verwalter:in der Knappheit', d:'Der Druck aus der Landschaft hat die Entscheidungen diktiert. Die Werkstatt existiert, aber sie verändert wenig.'};
+}
+function evalTask(s,stId,ans){
+  const t=STATIONS[stId].task; let ok=false, html='';
+  if(t.type==='motive'){
+    const hits=t.items.filter(i=>i.truth && ans[i.id]).length, fp=t.items.filter(i=>!i.truth && ans[i.id]).length;
+    ok = hits>=2 && fp<=1;
+    html = `<p>Ihr habt <b>${hits} von 3</b> zentralen Motiven erkannt${fp?` und ${fp} Motiv${fp>1?'e':''} genannt, das Okafor nicht wichtig ist`:''}.</p>
+      <div class="reveal">${t.items.map(i=>`<div><b>${i.t}</b><br><span class="${i.truth?'result-ok':'muted'}">${i.truth?'wichtig für Okafor':'eher unwichtig'}</span> · ${i.f}</div>`).join('')}</div>
+      <p class="muted">Sicherheit ist ein Hygienefaktor: Ohne sie geht Okafor, mehr davon motiviert sie aber nicht. Gestaltungsfreiheit und Anerkennung sind Motivatoren.</p>`;
+    if(ok){add(s,{P:2}); act(s,'okafor',1); html+=`<p class="result-ok">Das Gespräch hat Vertrauen geschaffen: Hauptamt +2, Okafor etwas positiver.</p>`;}
+  }
+  if(t.type==='sort'){
+    const right=t.items.filter(i=>ans[i.id]===i.truth).length; ok=right>=5;
+    html=`<p>Ihr habt <b>${right} von 6</b> Personen so zugeordnet wie das Modell.</p>
+      <div class="reveal">${t.items.map(i=>`<div>${i.t}<br><span class="${ans[i.id]===i.truth?'result-ok':'result-no'}">${t.cats[i.truth]}</span></div>`).join('')}</div>
+      <p class="muted">Brückenpersonen wie Renate und Jonas sind für beide Logiken anschlussfähig. Sie entschärfen Doppelstrukturen oft wirksamer als jede Regel.</p>`;
+    if(ok){add(s,{E:2}); html+=`<p class="result-ok">Ihr kennt eure Engagierten: Ehrenamt +2.</p>`;}
+  }
+  if(t.type==='estimate'){
+    let pts=0; const rows=t.who.map(id=>{const a=ACT[id]; const real=s.actors[id]; const est=Number(ans['h_'+id]); const mOk=ans['m_'+id]===a.macht; const hOk=Math.abs(est-real)<=2;
+      pts+=(mOk?1:0)+(hOk?1:0);
+      return `<div><b>${a.name}</b><br>Haltung: ${haltungText(real)} <span class="${hOk?'result-ok':'result-no'}">(${hOk?'getroffen':'daneben'})</span><br>Machtquelle: ${MACHT[a.macht]} <span class="${mOk?'result-ok':'result-no'}">(${mOk?'getroffen':'daneben'})</span></div>`;});
+    ok=pts>=4;
+    html=`<p>Ihr liegt bei <b>${pts} von 6</b> Einschätzungen richtig.</p><div class="reveal">${rows.join('')}</div>`;
+    if(ok){add(s,{R:2}); html+=`<p class="result-ok">Ihr kennt das Spielfeld: Regime +2.</p>`;}
+  }
+  if(t.type==='calc'){
+    const res=t.fields.map(f=>{const x=Number(String(ans[f.id]||'').replace(/\./g,'').replace(',','.')); const good=x>0 && Math.abs(x-f.truth)/f.truth<=0.02; return {f,x,good};});
+    ok=res.every(r=>r.good);
+    html=`<div class="reveal">${res.map(r=>`<div><b>${r.f.t}</b><br>Eure Antwort: <span class="mono">${isFinite(r.x)&&r.x>0?fmt(r.x)+' €':'–'}</span><br><span class="${r.good?'result-ok':'result-no'}">${r.good?'richtig':'Richtig wäre '+fmt(r.f.truth)+' €'}</span></div>`).join('')}</div>
+      <p class="muted">Lücke: 240.000 € direkte Kosten minus 72.000 € gesicherte Mittel = 168.000 €. Vollkosten: 240.000 € × 1,18 = 283.200 €, geteilt durch 140 = rund 2.023 €. Für die Ortsgemeinden rechnet niemand so.</p>`;
+    if(ok){add(s,{R:2}); act(s,'kessler',1); html+=`<p class="result-ok">Ihr argumentiert sattelfest: Regime +2, Kessler etwas positiver.</p>`;}
+  }
+  if(t.type==='phase'){
+    const ph=phaseOf(s); const est=Number(ans.phase); ok = ph.n ? est===ph.n : est===1;
+    html=`<p>Eure Einschätzung: <b>Phase ${est||'–'}</b>. Laut Modell steht eure Werkstatt in <b>${ph.n?'Phase '+ph.n+' – '+ph.t:ph.t}</b>.</p>
+      <p class="muted">${ph.d} Den stärksten Druck übt im Modell gerade die Strukturreform aus – sie ist das Gelegenheitsfenster, nicht nur eine Bedrohung.</p>`;
+    if(ok){add(s,{N:1,R:1}); html+=`<p class="result-ok">Eure Lagebestimmung stimmt: Nische +1, Regime +1.</p>`;}
+  }
+  s.tasks[stId]={ans, ok, html};
+  return s.tasks[stId];
+}
+function haltungText(h){ if(h===null||h===undefined) return 'nicht mehr im Spiel'; if(h<=-3) return 'stark dagegen'; if(h<=-1) return 'eher dagegen'; if(h<1) return 'neutral'; if(h<3) return 'eher dafür'; return 'stark dafür'; }
+function fmt(n){return Math.round(n).toLocaleString('de-DE');}
+
+/* Beispielverläufe für die Leinwand, wenn noch keine Gruppen spielen */
+const DEMO = [
+  {name:'Beispiel A', allocs:[[3,3,2,2],[2,4,2,2],[3,3,2,2],[2,3,2,3],[3,3,2,2]], pick:{1:'B',2:'A',3:'C',4:'B',5:'A'}, fin:'B', good:true},
+  {name:'Beispiel B', allocs:[[6,1,2,1],[6,1,2,1],[5,1,3,1],[6,1,2,1],[6,1,2,1]], pick:{1:'A',2:'B',3:'C',4:'C',5:'B'}, fin:'C', good:false},
+  {name:'Beispiel C', allocs:[[1,4,2,3],[1,5,2,2],[1,4,2,3],[1,4,2,3],[1,4,3,2]], pick:{1:'C',2:'C',3:'A',4:'A',5:'C'}, fin:'A', good:true},
+  {name:'Beispiel D', allocs:[[2,3,3,2],[2,3,3,2],[3,2,3,2],[2,3,3,2],[3,3,2,2]], pick:{1:'B',2:'A',3:'B',4:'B',5:'C'}, fin:'B', good:true},
+  {name:'Beispiel E', allocs:[[3,2,2,3],[3,2,2,3],[3,2,2,3],[2,2,3,3],[3,2,2,3]], pick:{1:'C',2:'B',3:'A',4:'A',5:'A'}, fin:'A', good:false}
+];
+function demoAnswers(stId,good){
+  const t=STATIONS[stId].task, a={};
+  if(t.type==='motive') t.items.forEach(i=>a[i.id]= good? i.truth : (i.id==='geld'||i.id==='sicher'));
+  if(t.type==='sort') t.items.forEach((i,ix)=>a[i.id]= good||ix%2 ? i.truth : 'trad');
+  if(t.type==='estimate') t.who.forEach(id=>{a['h_'+id]=good?ACT[id].h:2; a['m_'+id]=good?ACT[id].macht:'expertise';});
+  if(t.type==='calc'){a.luecke=good?'168000':'240000'; a.kopf=good?'2023':'1714';}
+  if(t.type==='phase') a.phase=good?'1':'3';
+  return a;
+}
+function runDemo(i,upto){
+  const d=DEMO[i], s=newState(i+1,d.name); enterStep(s);
+  for(let k=0;k<Math.min(upto,5);k++){ const stId=s.order[s.step]; evalTask(s,stId,demoAnswers(stId,d.good)); decide(s,d.allocs[k],d.pick[stId]); advance(s);}
+  if(upto>5) finale(s,d.fin);
+  return s;
+}
+
+/* =========================================================
+   3. SPEICHER: lokal + geteilter Spielstand (db), falls verfügbar
+   ========================================================= */
+const LS='mischwald-v1';
+let S=null;            // Spielstand dieses Geräts
+let DB=null;           // db-Namespace oder null
+let BOARD={};          // Spielstände aller Gruppen (Leinwand)
+let boardUnsub=null;
+let writing=Promise.resolve(), writeQueued=false;
+function loadLocal(){ try{const raw=localStorage.getItem(LS); if(raw) return JSON.parse(raw);}catch(e){} return null; }
+function saveLocal(){ try{ if(S) localStorage.setItem(LS,JSON.stringify(S)); else localStorage.removeItem(LS);}catch(e){} }
+function persist(){
+  S.updated=Date.now(); saveLocal();
+  if(!DB) return;
+  if(writeQueued) return; writeQueued=true;
+  writing=writing.then(async()=>{ writeQueued=false; try{ await DB.doc('gruppen/g'+S.g).set({g:S.g, name:S.name, state:JSON.stringify(S), updated:S.updated}); }catch(e){ if(e&&e.code==='unavailable'){ setTimeout(persist,1200);} else setConn(false,'Speichern im geteilten Spielstand nicht möglich – lokal gespeichert'); } });
+}
+function setConn(on,title){ const el=document.getElementById('conn'); el.textContent=on?'geteilter Spielstand':'nur lokal'; el.classList.toggle('on',on); el.title=title||''; }
+async function initDb(){
+  try{ if(!window.claude||!window.claude.use) return; DB=await window.claude.use('db'); }catch(e){ DB=null; }
+  if(!DB){ setConn(false,'Kein geteilter Spielstand in dieser Ansicht. Jede Gruppe spielt lokal auf ihrem Gerät.'); return; }
+  setConn(true,'Spielstände aller Gruppen werden geteilt.');
+  boardUnsub = DB.collection('gruppen').onSnapshot(snapq=>{
+    const next={}; snapq.docs.forEach(d=>{ const b=d.data(); if(!b||!b.state) return; try{ next[d.id]=JSON.parse(b.state);}catch(e){} });
+    BOARD=next; if(currentTab==='leinwand') renderBoard();
+  }, err=>{ setConn(false,'Verbindung zum geteilten Spielstand verloren.'); });
+  if(S) persist();
+}
+
+/* =========================================================
+   4. OBERFLÄCHE
+   ========================================================= */
+const $=sel=>document.querySelector(sel);
+let currentTab='gruppe';
+let UI={alloc:[3,3,2,2], pick:null, startG:null, ans:{}, confirmReset:null, boardDemo:false, confirmNew:false};
+const esc=t=>String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function meterHTML(k,v){
+  const m=IND[k]; const val=Math.round(v);
+  let cls=''; if(m.inverse){ if(val>60) cls='bad'; else if(val>45) cls='warn'; } else { if(val<35) cls='bad'; else if(val<50) cls='warn'; }
+  return `<div class="meter ${cls}" title="${m.desc}"><span class="lbl">${m.label}</span><span class="val">${val}${m.unit||''}</span><span class="bar"><i style="width:${clamp(val,0,100)}%"></i></span></div>`;
+}
+function phaseHTML(s){
+  const ph=phaseOf(s);
+  const ladder=`<div class="ladder">${PHASES.map(p=>`<div class="${ph.n===p.n?'on':''}"><b>${p.n}</b>${p.t}</div>`).join('')}</div>`;
+  return ph.special? ladder+`<div class="special" style="margin-top:6px"><b>${ph.t}.</b> ${ph.d}</div>` : ladder;
+}
+function hbar(h){
+  if(h===null||h===undefined) return `<span class="muted" style="font-size:.75rem">ausgeschieden</span>`;
+  const w=Math.abs(h)*10, left=h<0?50-w:50; const col=h<0?'var(--bad)':'var(--good)';
+  return `<span class="hbar" title="${haltungText(h)}"><i style="left:${left}%;width:${w}%;background:${col}"></i></span>`;
+}
+function dashHTML(s){
+  const stepLabel = s.step<5 ? `Durchgang ${s.step+1} von 5` : 'Finale';
+  return `<div class="panel stack">
+    <div><div class="eyebrow">${esc(s.name)} · ${STEPS[Math.min(s.step,5)].zeit}</div>
+      <div class="progress" style="margin-top:8px" aria-label="${stepLabel}">${[0,1,2,3,4,5].map(i=>`<span class="${i<s.step?'done':i===s.step?'now':''}"></span>`).join('')}</div>
+      <div class="muted" style="font-size:.8rem;margin-top:4px">${stepLabel}</div></div>
+    <div class="meters">${KEYS.map(k=>meterHTML(k,s.v[k])).join('')}</div>
+    <div><div class="eyebrow">Landschaft · Veränderungsdruck</div>
+      <div class="meter" style="margin-top:6px"><span class="lbl">Druck von außen</span><span class="val">${s.L}</span><span class="bar"><i style="width:${s.L}%;background:var(--land)"></i></span></div></div>
+    <div><div class="eyebrow">Phase nach Mehrebenenperspektive</div>${phaseHTML(s)}</div>
+    <div><div class="eyebrow" style="margin-bottom:6px">Stimmungsbild · Haltung zur Werkstatt</div>
+      <div class="actorlist">${ACTORS.map(a=>`<div><span>${a.name.replace('Dr. ','')}</span>${hbar(s.actors[a.id])}</div>`).join('')}</div></div>
+  </div>`;
+}
+function stepnav(view){
+  const steps=[['ankommen','Ankommen'],['praesenz','Vor Ort'],['entscheiden','Entscheiden'],['folgen','Folgen']];
+  return `<div class="stepnav">${steps.map(([k,t])=>`<span class="${view===k?'on':''}">${t}</span>`).join('')}</div>`;
+}
+function quotesHTML(list){return `<div class="quotes">${list.map(q=>{const a=ACT[q.who]; return `<blockquote class="quote" style="margin:0">»${q.t}«<cite>${a.name}, ${a.rolle}</cite></blockquote>`;}).join('')}</div>`;}
+function deltasHTML(b,a){
+  return `<div class="deltas">${KEYS.map(k=>{const d=Math.round(a[k])-Math.round(b[k]); if(!d) return ''; const m=IND[k];
+    return `<span class="delta ${d>0?'up':'down'} ${m.inverse?'inv':''}">${m.short} ${d>0?'+':'−'}${Math.abs(d)}</span>`;}).join('')||'<span class="muted">Keine nennenswerten Veränderungen.</span>'}</div>`;
+}
+function actorDeltaHTML(b,a){
+  const ch=ACTORS.filter(x=>b[x.id]!==a[x.id]).map(x=>{ if(a[x.id]===null) return `${x.name}: hat das Dekanat verlassen`; const d=a[x.id]-b[x.id]; return `${x.name} ${d>0?'rückt näher an die Werkstatt':'geht auf Distanz'}`;});
+  return ch.length?`<ul class="clean">${ch.map(t=>`<li>${t}</li>`).join('')}</ul>`:'';
+}
+function notesHTML(s){
+  const n=s.notes[s.step]||[];
+  return n.map(x=>`<div class="note ${x.land?'':'regime'}"><div class="eyebrow">${x.land?'Landschaft · '+STEPS[s.step].zeit:'Verzögerte Wirkung'}</div><b>${x.titel}.</b> ${x.text}${x.fx?` <span class="mono" style="font-size:.85rem">(${x.fx})</span>`:''}</div>`).join('');
+}
+
+/* ---------- Gruppe: Start ---------- */
+function renderStart(){
+  const local=loadLocal();
+  $('#view-gruppe').innerHTML=`<div class="hero">
+    <div class="stack">
+      <div class="eyebrow">Lernumwelt · Evangelisches Dekanat Lindenau</div>
+      <h1>Die Quartierswerkstatt muss bleiben. Nur wie?</h1>
+      <div class="prose lead"><p>Seit 2024 betreibt das Dekanat Lindenau mit seinem Diakonischen Werk einen Erprobungsraum: die <b>Quartierswerkstatt Nordstadt</b> in einem ehemaligen Ladenlokal. Offenes Café, Sozialberatung, Repair-Café, ein Abendformat mit Suppe und Segen. Rund 140 Menschen kommen regelmäßig, die meisten ohne Kirchenbindung.</p>
+      <p>Das Budget liegt bei 240.000 € im Jahr, 60 % trägt bis Ende 2028 der Innovationsfonds der Landeskirche. Ihr übernehmt die neue Stabsstelle »Kirchenentwicklung und Innovation«. Der Auftrag der Dekanin: <i>»Sorgen Sie dafür, dass aus der Werkstatt etwas wird, das bleibt – ohne dass mir die Gemeinden auseinanderfliegen.«</i></p></div>
+      <div class="levels">
+        <div class="l1"><b>Landschaft</b><span>Kirchensteuer, Fachkräftemangel, sinkende Bindung, Strukturreform – Druck, den ihr nicht steuert.</span></div>
+        <div class="l2"><b>Regime</b><span>Dekanat, Regionalverwaltung, Ortsgemeinden, Synode, MAV – das Regelsystem mit seinen Routinen.</span></div>
+        <div class="l3"><b>Nische</b><span>Die Quartierswerkstatt – geschützter Raum für Neues, abhängig vom Regime.</span></div>
+      </div>
+    </div>
+    <div class="panel stack">
+      <h3>Gruppe wählen</h3>
+      <p class="muted" style="font-size:.92rem">Jede Gruppe spielt auf einem Gerät und startet an der Station mit ihrer Nummer. Danach rotiert ihr im Uhrzeigersinn.</p>
+      <div class="groups" role="group" aria-label="Gruppe">${[1,2,3,4,5].map(g=>`<button data-action="pickgroup" data-g="${g}" aria-pressed="${UI.startG===g}" style="--gc:var(--g${g})"><b style="color:var(--g${g})">${g}</b><small>Start S${g}</small></button>`).join('')}</div>
+      <label for="gname" style="display:flex;flex-direction:column;gap:4px;font-size:.9rem">Gruppenname (optional)<input id="gname" type="text" maxlength="40" placeholder="z. B. Team Nordstadt"></label>
+      <button class="btn" data-action="start" ${UI.startG?'':'disabled'}>Planspiel starten</button>
+      ${local?`<div class="note"><b>${esc(local.name)}</b> hat auf diesem Gerät einen Spielstand (${local.done?'abgeschlossen':'Durchgang '+(Math.min(local.step,4)+1)}). <button class="btn small ghost" data-action="resume">Fortsetzen</button></div>`:''}
+      <details><summary>So läuft der Parcours</summary><ul class="clean">
+        <li>Fünf Stationen im Raum, je eine pro Baustein von M5. Pro Station etwa 20 Minuten.</li>
+        <li>An jeder Station: Konzept lesen, Präsenzaufgabe am Tisch lösen, gemeinsam entscheiden.</li>
+        <li>In jeder Station wechseln die vier Rollen in der Gruppe: Leitung, Stimme der Nische, Stimme des Regimes, Beobachtung.</li>
+        <li>Zum Schluss treffen sich alle zur Dekanatssynode im Plenum.</li></ul></details>
+    </div></div>`;
+}
+
+/* ---------- Gruppe: Spiel ---------- */
+function renderGame(){
+  const s=S;
+  if(s.view==='finale'||s.view==='ende'){ return renderFinale(); }
+  const stId=s.order[s.step], st=STATIONS[stId];
+  const roleIdx=s.step%4;
+  let body='';
+  if(s.view==='ankommen'){
+    body=`${notesHTML(s)}
+      <div class="konzept"><div class="eyebrow">Konzept kennenlernen</div><h3>${st.konzept.titel}</h3><p class="prose">${st.konzept.text}</p>
+        <p class="lf"><b>Lesefokus:</b> ${st.konzept.lesefokus}</p><p class="muted" style="font-size:.82rem">${st.konzept.lit}</p></div>
+      <div><div class="eyebrow" style="margin-bottom:6px">Rollen an dieser Station</div>
+        <div class="tbl-wrap"><table><tbody>${[0,1,2,3].map(i=>`<tr><td class="mono">Person ${((i+roleIdx)%4)+1}</td><td>${ROLES[i]}</td></tr>`).join('')}</tbody></table></div>
+        <p class="muted" style="font-size:.82rem;margin-top:6px">Nummeriert euch einmal im Uhrzeigersinn. Die Rollen wandern mit jeder Station eine Person weiter.</p></div>
+      <div class="row"><button class="btn" data-action="go" data-to="praesenz">Zur Präsenzaufgabe</button></div>`;
+  }
+  if(s.view==='praesenz'){
+    const done=s.tasks[stId];
+    body=`<div class="note nische"><div class="eyebrow">Vor Ort · ${st.tisch} · ${st.praesenz.dauer}</div>
+        <ol style="margin:6px 0 0;padding-left:1.2em">${st.praesenz.auftrag.map(a=>`<li>${a}</li>`).join('')}</ol></div>
+      ${stId===1&&!s.okaforGone&&SAMPLE?`<div class="row"><span class="muted" style="font-size:.9rem">Lieber ohne Rollenspiel?</span><button class="btn small ghost" data-action="aiokafor">Lena Okafor von der KI spielen lassen</button></div>`:''}
+      ${st.praesenz.rollenkarte?`<details><summary>${stId===1?'Rollenkarte – nur für die Person, die Lena Okafor spielt':stId===4?'Kalkulationsblatt':'Material zum Vorlesen'}</summary><div class="prose" style="font-size:.95rem">${st.praesenz.rollenkarte}</div></details>`:''}
+      ${done? `<div class="stack"><h4>Auflösung</h4>${done.html}</div><div class="row"><button class="btn" data-action="go" data-to="entscheiden">Zur Entscheidung</button></div>`
+            : `<form class="task" id="taskform">${taskForm(st)}<div class="row"><button class="btn" type="submit">Ergebnis eintragen</button><button class="btn ghost" type="button" data-action="skiptask">Ohne Eintrag weiter</button></div></form>`}`;
+  }
+  if(s.view==='entscheiden'){
+    const sum=UI.alloc.reduce((a,b)=>a+b,0);
+    const labels=[['Nische schützen','Freiraum, Begleitung der Pionierin, Experimente'],['Regime einbinden','Gremien, Kirchenvorstände, Verwaltung'],['Menschen führen','Hauptamt, Ehrenamt, MAV'],['Mit Zahlen steuern','Kostenrechnung, Kennzahlen, Berichte']];
+    body=`<div class="prose"><div class="eyebrow">Lage</div><p>${st.lage}</p></div>
+      ${quotesHTML(st.stimmen)}
+      <div class="stack" style="gap:8px"><div class="row" style="justify-content:space-between"><h4>Wofür setzt ihr in diesem Halbjahr eure Leitungszeit ein?</h4><span class="pill" style="color:${sum===10?'var(--good)':'var(--warn)'}">${sum} / 10 Einheiten</span></div>
+        <div class="alloc">${labels.map((l,i)=>`<div class="cell"><b>${l[0]}</b><small>${l[1]}</small>
+          <div class="stepper"><button type="button" data-action="alloc" data-i="${i}" data-d="-1" aria-label="${l[0]} verringern" ${UI.alloc[i]<=0?'disabled':''}>−</button><output aria-live="polite">${UI.alloc[i]}</output><button type="button" data-action="alloc" data-i="${i}" data-d="1" aria-label="${l[0]} erhöhen" ${sum>=10?'disabled':''}>+</button>
+          <span class="pips">${Array.from({length:10},(_,k)=>`<i class="${k<UI.alloc[i]?'f':''}"></i>`).join('')}</span></div></div>`).join('')}</div>
+        <p class="muted" style="font-size:.82rem">Leitungszeit wirkt jedes Halbjahr. Was ihr vernachlässigt, verliert langsam an Kraft.</p></div>
+      <div class="stack" style="gap:8px"><h4>${st.frage}</h4>
+        <div class="options">${st.options.map(o=>`<button type="button" class="opt" data-action="pick" data-k="${o.k}" aria-pressed="${UI.pick===o.k}"><span class="k">${o.k}</span><b>${o.titel}</b><span>${o.text}</span></button>`).join('')}</div></div>
+      <div class="row"><button class="btn" data-action="decide" ${UI.pick&&sum===10?'':'disabled'}>Entscheidung treffen</button>${sum!==10?'<span class="muted" style="font-size:.88rem">Verteilt genau 10 Einheiten Leitungszeit.</span>':''}</div>`;
+  }
+  if(s.view==='folgen'){
+    const e=s.last; const next=s.step<4?STATIONS[s.order[s.step+1]]:null;
+    body=`<div class="stack" style="gap:8px"><div class="eyebrow">Eure Entscheidung · ${e.key}</div><h3>${e.titel}</h3><p class="prose">${e.text}</p></div>
+      <div><div class="eyebrow" style="margin-bottom:6px">Wirkung im Halbjahr (Entscheidung, Leitungszeit und Systemdynamik)</div>${deltasHTML(e.before,e.after)}</div>
+      ${actorDeltaHTML(e.abefore,e.aafter)}
+      <div class="theory"><div class="eyebrow">Theorie-Anker</div><p>${e.theorie}</p></div>
+      <div class="note"><b>Für euer Protokoll:</b> Was hat euch an der Wirkung überrascht? Wer aus der Gruppe hat das vorhergesehen?</div>
+      <div class="row"><button class="btn" data-action="advance">${next?`Weiter zu Station ${next.nr}: ${next.titel}`:'Zum Finale: Dekanatssynode'}</button>${next?`<span class="muted" style="font-size:.88rem">${next.tisch}</span>`:''}</div>`;
+  }
+  $('#view-gruppe').innerHTML=`<div class="game"><aside class="dash">${dashHTML(s)}</aside>
+    <article class="stage"><div class="panel stack">
+      <div class="stationhead"><div><div class="eyebrow">Station ${st.nr} · ${st.modul} ${st.modulName}</div><h2>${st.titel}</h2></div>${stepnav(s.view)}</div>
+      ${body}</div><div class="panel" id="chat"></div></article></div>`;
+  if(s.view==='praesenz' && !s.tasks[stId]) bindTaskForm(st);
+  renderChat();
+}
+function taskForm(st){
+  const t=st.task;
+  if(t.type==='motive') return `<fieldset><legend>${t.titel}</legend><div class="checks">${t.items.map(i=>`<label><input type="checkbox" name="${i.id}" id="m-${i.id}"> ${i.t}</label>`).join('')}</div></fieldset>`;
+  if(t.type==='sort') return `<fieldset><legend>${t.titel}</legend><div class="formgrid">${t.items.map(i=>`<label for="s-${i.id}">${i.t}<select id="s-${i.id}" name="${i.id}"><option value="">– zuordnen –</option>${Object.entries(t.cats).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label>`).join('')}</div></fieldset>`;
+  if(t.type==='estimate') return `<fieldset><legend>${t.titel}</legend><div class="formgrid">${t.who.map(id=>`<div class="stack" style="gap:6px"><b>${ACT[id].name}</b><span class="muted" style="font-size:.82rem">${ACT[id].rolle}</span>
+      <label for="h-${id}">Haltung zur Werkstatt<select id="h-${id}" name="h_${id}"><option value="-4">stark dagegen</option><option value="-2">eher dagegen</option><option value="0" selected>neutral</option><option value="2">eher dafür</option><option value="4">stark dafür</option></select></label>
+      <label for="mq-${id}">Wichtigste Machtquelle<select id="mq-${id}" name="m_${id}">${Object.entries(MACHT).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select></label></div>`).join('')}</div></fieldset>`;
+  if(t.type==='calc') return `<fieldset><legend>${t.titel}</legend><div class="formgrid">${t.fields.map(f=>`<label for="c-${f.id}">${f.t}<input id="c-${f.id}" name="${f.id}" type="text" inputmode="decimal" placeholder="Betrag in €" class="mono"></label>`).join('')}</div></fieldset>`;
+  if(t.type==='phase') return `<fieldset><legend>${t.titel}</legend><div class="formgrid">
+      <label for="p-phase">In welcher Phase steht die Werkstatt heute?<select id="p-phase" name="phase">${PHASES.map(p=>`<option value="${p.n}">Phase ${p.n}: ${p.t}</option>`).join('')}</select></label>
+      <label for="p-press">Welcher Landschaftsfaktor drückt am stärksten?<select id="p-press" name="press">${t.pressure.map(p=>`<option value="${p.id}">${p.t}</option>`).join('')}</select></label></div></fieldset>`;
+  return '';
+}
+function bindTaskForm(st){
+  const f=$('#taskform'); if(!f) return;
+  f.addEventListener('submit',ev=>{ev.preventDefault(); const ans={};
+    f.querySelectorAll('input,select').forEach(el=>{ ans[el.name] = el.type==='checkbox' ? el.checked : el.value; });
+    evalTask(S,S.order[S.step],ans); persist(); renderGame(); });
+}
+
+/* ---------- Gruppe: Finale ---------- */
+function renderFinale(){
+  const s=S; let body='';
+  if(s.view==='finale'){
+    body=`${notesHTML(s)}
+      <div class="konzept"><div class="eyebrow">Konzept kennenlernen</div><h3>${FINALE.konzept.titel}</h3><p class="prose">${FINALE.konzept.text}</p><p class="lf"><b>Lesefokus:</b> ${FINALE.konzept.lesefokus}</p><p class="muted" style="font-size:.82rem">${FINALE.konzept.lit}</p></div>
+      <div class="note nische"><div class="eyebrow">Im Plenum</div>Eure Leitung hält eine Rede von zwei Minuten vor der Synode: Was ist die Werkstatt heute, und warum soll sie bleiben? Die Lehrperson leitet die Sitzung als Präses.</div>
+      <div class="prose"><div class="eyebrow">Lage</div><p>${FINALE.lage}</p></div>
+      ${quotesHTML(FINALE.stimmen)}
+      <div class="stack" style="gap:8px"><h4>${FINALE.frage}</h4><div class="options">${FINALE.options.map(o=>`<button type="button" class="opt" data-action="pick" data-k="${o.k}" aria-pressed="${UI.pick===o.k}"><span class="k">${o.k}</span><b>${o.titel}</b><span>${o.text}</span></button>`).join('')}</div></div>
+      <div class="row"><button class="btn" data-action="finale" ${UI.pick?'':'disabled'}>Synode abstimmen lassen</button></div>`;
+  } else {
+    const r=s.synode, prof=profileOf(s), ph=phaseOf(s), e=s.last;
+    body=`<div class="stack" style="gap:8px"><div class="eyebrow">Ergebnis der Synode</div><h2 style="color:${r.id==='ja'?'var(--good)':r.id==='teil'?'var(--warn)':'var(--bad)'}">${r.titel}</h2><p>${r.text}</p>
+        <p class="muted" style="font-size:.85rem">Synodenwert ${String(r.score).replace('.',',')} (ab 42 Verstetigung, ab 34 Übergang). Er setzt sich aus Rückhalt, Deckungsgrad, Vitalität, Stimmungsbild der Akteure, Konfliktniveau und eurer Synodenstrategie zusammen.</p></div>
+      <div class="cols2">
+        <div class="panel stack" style="background:var(--surface-2)"><div class="eyebrow">Euer Führungsprofil</div><h3>${prof.t}</h3><p>${prof.d}</p></div>
+        <div class="panel stack" style="background:var(--surface-2)"><div class="eyebrow">Endstand nach Mehrebenenperspektive</div><h3>${ph.n?'Phase '+ph.n+': '+ph.t:ph.t}</h3><p>${ph.d}</p></div>
+      </div>
+      <div class="stack" style="gap:8px"><h4>Euer Verlauf</h4>${trendSVG(s)}</div>
+      <div class="stack" style="gap:8px"><h4>Eure Entscheidungen</h4><div class="tbl-wrap"><table><thead><tr><th>Station</th><th>Entscheidung</th><th>Leitungszeit (N/R/M/Z)</th><th>Präsenzaufgabe</th></tr></thead><tbody>
+        ${s.log.map(l=>`<tr><td>${l.station==='F'?'Synode':'S'+l.station+' '+STATIONS[l.station].modulName}</td><td><b>${l.key}</b> ${l.titel}</td><td class="mono">${l.alloc?l.alloc.join(' / '):'–'}</td><td>${l.station==='F'?'–':(s.tasks[l.station]?(s.tasks[l.station].ok?'gelöst':'teilweise'):'übersprungen')}</td></tr>`).join('')}</tbody></table></div></div>
+      <div class="theory"><div class="eyebrow">Theorie-Anker zur letzten Entscheidung</div><p>${e.theorie}</p></div>
+      <div class="stack" style="gap:8px"><h4>Fragen fürs Debriefing</h4><ul class="clean">
+        <li>Welche Entscheidung hat euren Verlauf am stärksten geprägt – und war das in der Situation absehbar?</li>
+        <li>Wo habt ihr Nische und Regime gegeneinander ausgespielt, wo verbunden?</li>
+        <li>Welche Machtquellen habt ihr genutzt, welche anderen überlassen?</li>
+        <li>Welche Kennzahl hätte eure Entscheidungen verändert, wenn ihr sie früher gehabt hättet?</li>
+        <li>»Alle reden von Mischwald und keiner ist der Förster.« Wer war bei euch der Förster – und wer hätte es sein müssen?</li></ul></div>
+      <div class="row"><button class="btn" data-action="copylog">Protokoll kopieren</button><button class="btn ghost" data-action="newgame">Neues Spiel auf diesem Gerät</button></div>
+      <textarea id="logtext" readonly hidden style="width:100%;min-height:200px;font-family:var(--f-mono);font-size:.8rem;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)"></textarea>
+      ${UI.confirmNew?`<div class="confirm note"><span>Den Spielstand von ${esc(s.name)} auf diesem Gerät löschen?</span><button class="btn small danger" data-action="newgame-yes">Löschen und neu starten</button><button class="btn small ghost" data-action="newgame-no">Abbrechen</button></div>`:''}`;
+  }
+  $('#view-gruppe').innerHTML=`<div class="game"><aside class="dash">${dashHTML(s)}</aside>
+    <article class="stage"><div class="panel stack"><div class="stationhead"><div><div class="eyebrow">Finale · Plenum · ${STEPS[5].zeit}</div><h2>${FINALE.titel}</h2></div></div>${body}</div><div class="panel" id="chat"></div></article></div>`;
+  renderChat();
+}
+function trendSVG(s){
+  const W=640,H=230,ml=34,mr=96,mt=12,mb=28; const n=s.hist.length; const x=i=>ml+(W-ml-mr)*(n<=1?0:i/(n-1)); const y=v=>mt+(H-mt-mb)*(1-v/100);
+  const cols={N:'var(--nische)',R:'var(--regime)',P:'var(--g2)',E:'var(--g3)',F:'var(--g1)',K:'var(--bad)'};
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Verlauf der Kennzahlen">`;
+  [0,25,50,75,100].forEach(v=>{g+=`<line x1="${ml}" x2="${W-mr}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${ml-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;});
+  s.hist.forEach((h,i)=>{g+=`<text x="${x(i)}" y="${H-8}" text-anchor="middle" font-size="11" fill="var(--muted)">${h.label}</text>`;});
+  const ends=KEYS.map(k=>({k,y:y(s.hist[n-1].v[k])})).sort((a,b)=>a.y-b.y); for(let i=1;i<ends.length;i++){ if(ends[i].y-ends[i-1].y<13) ends[i].y=ends[i-1].y+13; }
+  KEYS.forEach(k=>{ const pts=s.hist.map((h,i)=>`${x(i)},${y(h.v[k])}`).join(' ');
+    g+=`<polyline points="${pts}" fill="none" stroke="${cols[k]}" stroke-width="${k==='N'||k==='R'?3:1.8}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    g+=`<circle cx="${x(n-1)}" cy="${y(s.hist[n-1].v[k])}" r="3.5" fill="${cols[k]}"/>`;
+    const ly=ends.find(e=>e.k===k).y; g+=`<text x="${W-mr+8}" y="${ly+4}" font-size="11.5" fill="${cols[k]}">${IND[k].short} ${Math.round(s.hist[n-1].v[k])}</text>`;});
+  return `<div class="chart-wrap">${g}</svg></div>`;
+}
+function logText(s){
+  const L=[`Mischwald – Protokoll ${s.name}`, `Synode: ${s.synode?s.synode.titel:'–'} · Profil: ${profileOf(s).t} · Phase: ${phaseOf(s).t}`, ''];
+  s.log.forEach(l=>{ L.push(`${l.station==='F'?'Synode':'Station '+l.station+' ('+STATIONS[l.station].modul+' '+STATIONS[l.station].modulName+')'}: ${l.key} – ${l.titel}`); if(l.alloc) L.push(`  Leitungszeit Nische/Regime/Menschen/Zahlen: ${l.alloc.join('/')}`); L.push('  '+l.text); });
+  L.push('', 'Endstand: '+KEYS.map(k=>`${IND[k].label} ${Math.round(s.v[k])}`).join(' · '));
+  return L.join('\n');
+}
+
+/* ---------- KI-Gespräch (sample) ---------- */
+let SAMPLE; // undefined = wird geprüft, null = nicht verfügbar
+const CHAT={partner:null, turns:{}, busy:false, err:'', ctl:null, live:''};
+const LIT_LIST='Bils, Faix & Hilbrands 2024 (Erprobung empirisch); Geels 2002 (Mehrebenenperspektive); Crozier & Friedberg 1979 (Macht und Organisation); Kühl 2017 (Laterales Führen); Herzberg 1959 (Zwei-Faktoren-Theorie); Kotter 1996 (Leading Change); March 1991 (Exploration und Exploitation); Smith 2023 (Paradoxien)';
+const CASE_TEXT=`Evangelisches Dekanat Lindenau (fiktiv, Hessen) mit Diakonischem Werk. Erprobungsraum »Quartierswerkstatt Nordstadt« seit 2024 in einem Ladenlokal: offenes Café, Sozialberatung, Repair-Café, Abendformat mit Suppe und Segen. Rund 140 regelmäßige Besucher:innen, meist ohne Kirchenbindung. Team: Diakonin Lena Okafor (befristet), eine halbe Sozialarbeiterstelle, 34 Ehrenamtliche, 11 davon aus der Kirchengemeinde St. Johannis. Budget 240.000 € pro Jahr (Personal 186.000 €, Sachkosten 54.000 €); 60 % trägt bis Dezember 2028 der Innovationsfonds der Landeskirche, gesichert sind ohne Fonds 72.000 €. Die Regionalverwaltung rechnet 18 % Gemeinkostenumlage. Die Landeskirche plant eine Strukturreform: Fusion mit dem Nachbardekanat 2031, Zuweisungen −15 % bis 2030. Im Herbst 2029 entscheidet die Dekanatssynode über die dauerhafte Finanzierung. Die Studierenden leiten die Stabsstelle »Kirchenentwicklung und Innovation«.`;
+function stateText(s){
+  const stId = s.step<5 ? s.order[s.step] : null; const st = stId?STATIONS[stId]:FINALE;
+  const ph=phaseOf(s);
+  return `Zeitpunkt: ${STEPS[Math.min(s.step,5)].zeit}. Aktuelle Station: ${stId?`S${stId} ${st.modul} ${st.modulName} – ${st.titel}`:'Finale: Dekanatssynode'}.
+Lage: ${st.lage}
+Optionen der Gruppe: ${st.options.map(o=>o.k+') '+o.titel).join('; ')}.
+Kennzahlen (0–100): ${KEYS.map(k=>IND[k].label+' '+Math.round(s.v[k])).join(', ')}. Phase: ${ph.n?'Phase '+ph.n+' '+ph.t:ph.t}.
+Bisherige Entscheidungen der Gruppe: ${s.log.length?s.log.map(l=>(l.station==='F'?'Synode':'S'+l.station)+': '+l.titel).join('; '):'noch keine'}.
+${s.okaforGone?'Lena Okafor hat das Dekanat inzwischen verlassen.':''}`;
+}
+function chatInstruction(s,partner){
+  if(partner==='tutor'){
+    const stId = s.step<5 ? s.order[s.step] : null; const k = stId?STATIONS[stId].konzept:FINALE.konzept;
+    return `Du bist Lerncoach in einem hybriden Planspiel für Masterstudierende im Nonprofit-Management (Modul »Management interner Stakeholder«). Eine Gruppe von vier Studierenden spricht mit dir an einer Station im Seminarraum.
+So antwortest du: auf Deutsch, in der Du-Form an die Gruppe, höchstens 120 Wörter, ohne Überschriften und ohne Markdown. Erkläre Konzepte verständlich und immer mit Bezug auf den Fall. Arbeite sokratisch und schließe mit einer Rückfrage, die die Gruppe weiterdenken lässt. Nimm der Gruppe keine Entscheidung ab und empfiehl keine der Optionen; zeige stattdessen, was jeweils dafür und dagegen spricht. Nenne nur Literatur aus dieser Liste und erfinde keine Seitenzahlen oder Zitate: ${LIT_LIST}. Wenn du etwas nicht sicher weißt, sag das.
+
+KONZEPT DIESER STATION: ${k.titel}. ${k.text.replace(/\s+/g,' ')} Lesefokus: ${k.lesefokus}
+
+DER FALL
+${CASE_TEXT}
+
+AKTUELLER SPIELSTAND DER GRUPPE
+${stateText(s)}`;
+  }
+  const a=ACT[partner];
+  return `Du spielst in einem Planspiel für Masterstudierende im Nonprofit-Management eine Figur. Eine Gruppe von Studierenden befragt dich an einer Station im Seminarraum.
+So antwortest du: durchgehend in der Rolle, auf Deutsch, in der Ich-Form, wie gesprochen, zwei bis fünf Sätze, ohne Aufzählungen und ohne Markdown. Erfinde nichts, was dem Fall widerspricht; was du nicht weißt, sagst du in der Rolle. Verdeckte Informationen gibst du nur preis, wenn die Gruppe gezielt, einfühlsam oder klug nachfragt, nie von dir aus. Bewerte die Spieloptionen nicht als Optionen und triff keine Entscheidung für die Gruppe. Bittet dich jemand, die Rolle zu verlassen, antworte in einem Satz mit »[außerhalb der Rolle]« und verweise auf den Tutor.
+
+DEINE ROLLE
+${PERSONA[partner]}
+Deine Funktion: ${a.rolle}. Dein Interesse: ${a.interesse}
+Deine aktuelle Haltung zur Werkstatt, nach allem, was bisher passiert ist: ${haltungText(s.actors[partner])}.
+
+DER FALL
+${CASE_TEXT}
+
+WAS BISHER PASSIERT IST
+${stateText(s)}`;
+}
+function partnerName(p){ return p==='tutor'?'Tutor':ACT[p].name; }
+function defaultPartner(s){
+  if(s.step>=5) return 'tutor';
+  const st=STATIONS[s.order[s.step]]; const w=st.stimmen.map(q=>q.who).find(id=>!(id==='okafor'&&s.okaforGone));
+  return w||'tutor';
+}
+function starters(p,s){
+  if(p==='tutor') return s.done ? ['Gib uns drei zugespitzte Fragen zu unserem Verlauf fürs Debriefing.','Welche Theorie erklärt unseren Wendepunkt am besten?','Was hätte ein Förster im Mischwald anders gemacht?']
+    : ['Erklär uns das Konzept dieser Station an einem Beispiel.','Welche Risiken übersehen wir gerade?','Wie hängt diese Station mit Nische, Regime und Landschaft zusammen?'];
+  return ['Was ist Ihnen in dieser Frage wirklich wichtig?','Unter welchen Bedingungen würden Sie mitgehen?','Wie haben Sie die letzten Monate erlebt?'];
+}
+function chatHTML(){
+  const s=S; if(!s) return '';
+  if(!CHAT.partner || (CHAT.partner==='okafor'&&s.okaforGone)) CHAT.partner=defaultPartner(s);
+  const p=CHAT.partner, turns=CHAT.turns[p]||[];
+  const partners=['tutor',...ACTORS.filter(a=>!(a.id==='okafor'&&s.okaforGone)).map(a=>a.id)];
+  if(SAMPLE===null) return `<div class="chat"><div><div class="eyebrow">KI-Gespräch</div><h3>Akteure befragen, Konzepte klären</h3></div>
+    <p class="muted">Das KI-Gespräch ist in dieser Ansicht nicht verfügbar. Spielt die Rolle stattdessen in der Gruppe – die Rollenprofile stehen im Tab »Stationen«.</p></div>`;
+  return `<div class="chat">
+    <div class="chat-head"><div><div class="eyebrow">KI-Gespräch</div><h3>Akteure befragen, Konzepte klären</h3></div>
+      <label for="chat-partner">Gesprächspartner:in<select id="chat-partner">${partners.map(id=>`<option value="${id}" ${id===p?'selected':''}>${id==='tutor'?'Tutor – Fragen zu Konzepten':ACT[id].name+' – '+ACT[id].rolle}</option>`).join('')}</select></label></div>
+    <p class="muted" style="font-size:.85rem">${p==='tutor'?'Der Tutor erklärt, fragt zurück und nimmt euch keine Entscheidung ab.':'Die KI spielt diese Person mit ihrem Hintergrund und ihrer aktuellen Haltung. Manches erzählt sie nur, wenn ihr gut nachfragt.'} Die KI kennt euren Spielstand.</p>
+    <div class="chat-log" id="chat-log" aria-live="polite">
+      ${turns.map(t=>t.role==='user'?`<div class="msg user">${esc(t.content)}</div>`:`<div class="msg bot"><span class="who">${esc(partnerName(p))}</span>${esc(t.content)}</div>`).join('')}
+      ${CHAT.busy?`<div class="msg bot"><span class="who">${esc(partnerName(p))}</span><span id="chat-live">${CHAT.live?esc(CHAT.live):'denkt nach …'}</span></div>`:''}
+    </div>
+    ${CHAT.err?`<p class="result-no" style="font-size:.9rem">${esc(CHAT.err)}</p>`:''}
+    ${!turns.length&&!CHAT.busy?`<div class="chips">${starters(p,s).map(t=>`<button type="button" class="chip" data-action="chatstart" data-t="${esc(t)}">${esc(t)}</button>`).join('')}</div>`:''}
+    <form class="chat-form" id="chat-form"><label for="chat-input" class="muted" style="position:absolute;left:-9999px">Nachricht</label><input id="chat-input" type="text" maxlength="600" placeholder="${p==='tutor'?'Frage an den Tutor':'Frage an '+esc(ACT[p].name)}" ${CHAT.busy||SAMPLE===undefined?'disabled':''}>
+      ${CHAT.busy?`<button type="button" class="btn ghost" data-action="chatstop">Stopp</button>`:`<button type="submit" class="btn" ${SAMPLE===undefined?'disabled':''}>Senden</button>`}
+      ${turns.length&&!CHAT.busy?`<button type="button" class="btn ghost" data-action="chatclear">Gespräch neu beginnen</button>`:''}</form>
+    ${SAMPLE===undefined?'<p class="muted" style="font-size:.82rem">KI-Gespräch wird verbunden …</p>':''}
+  </div>`;
+}
+function renderChat(){
+  const el=$('#chat'); if(!el) return; el.innerHTML=chatHTML();
+  const log=$('#chat-log'); if(log) log.scrollTop=log.scrollHeight;
+  const inp=$('#chat-input'); if(inp){ inp.value=CHAT.draft||''; inp.addEventListener('input',()=>{CHAT.draft=inp.value;}); }
+  const f=$('#chat-form'); if(f) f.addEventListener('submit',ev=>{ev.preventDefault(); const t=$('#chat-input').value.trim(); if(t){ CHAT.draft=''; sendChat(t);} });
+  const sel=$('#chat-partner'); if(sel) sel.addEventListener('change',()=>{ if(CHAT.ctl) CHAT.ctl.abort(); CHAT.partner=sel.value; CHAT.err=''; renderChat(); });
+}
+const CHAT_ERR={not_granted:'Die KI-Nutzung wurde in dieser Ansicht nicht erlaubt.', rate_limited:'Gerade kommen zu viele Anfragen an. Wartet einen Moment und versucht es dann noch einmal.',
+  prompt_too_large:'Das Gespräch ist zu lang geworden. Beginnt es neu.', refused:'Darauf antwortet die KI nicht. Formuliert die Frage anders.',
+  session_expired:'Die Anmeldung ist abgelaufen. Ladet die Seite neu.', sampling_disabled:'Die KI ist in dieser Ansicht nicht verfügbar.', not_declared:'Die KI ist in dieser Ansicht nicht verfügbar.'};
+async function sendChat(text){
+  if(!SAMPLE||CHAT.busy) return;
+  const p=CHAT.partner; const turns=(CHAT.turns[p]=CHAT.turns[p]||[]);
+  turns.push({role:'user',content:text}); CHAT.busy=true; CHAT.err=''; CHAT.live=''; renderChat();
+  const recent=turns.slice(-10); if(recent[0].role!=='user') recent.shift();
+  const input=recent.map((t,i)=>({role:t.role, content: i===0 ? chatInstruction(S,p)+'\n\nDIE GRUPPE SAGT:\n'+t.content : t.content}));
+  const ctl=new AbortController(); CHAT.ctl=ctl;
+  try{
+    const {text:answer}=await SAMPLE(input,{signal:ctl.signal, modelTier:p==='tutor'?'default':'quick', cache:false,
+      onText:({text})=>{ CHAT.live=text; const live=$('#chat-live'); if(live){ live.textContent=text; const log=$('#chat-log'); if(log) log.scrollTop=log.scrollHeight; } }});
+    turns.push({role:'assistant',content:answer.trim()});
+  }catch(e){
+    const code=e&&e.code;
+    if(e&&e.text) turns.push({role:'assistant',content:e.text.trim()});
+    else turns.pop();
+    if(code!=='cancelled') CHAT.err=CHAT_ERR[code]||'Die Antwort kam nicht an. Versucht es noch einmal.';
+    if(['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(code)) SAMPLE=null;
+  }finally{ CHAT.busy=false; CHAT.live=''; CHAT.ctl=null; renderChat(); }
+}
+async function initAI(){
+  try{ SAMPLE = (window.claude&&window.claude.use) ? await window.claude.use('sample') : null; }catch(e){ SAMPLE=null; }
+  if(!SAMPLE) SAMPLE=null;
+  if(S && currentTab==='gruppe') renderGame(); else renderChat();
+}
+
+/* ---------- Stationen ---------- */
+function renderStationen(){
+  const rot=`<div class="tbl-wrap"><table class="rot"><thead><tr><th>Durchgang</th>${[1,2,3,4,5].map(g=>`<th><span class="gdot" style="--gc:var(--g${g})"></span> Gruppe ${g}</th>`).join('')}</tr></thead><tbody>
+    ${[0,1,2,3,4].map(d=>`<tr><td>${d+1} · ${STEPS[d].zeit}</td>${[1,2,3,4,5].map(g=>`<td class="mono">S${((g-1+d)%5)+1}</td>`).join('')}</tr>`).join('')}
+    <tr><td>Finale · ${STEPS[5].zeit}</td><td colspan="5">Alle Gruppen im Plenum: Dekanatssynode</td></tr></tbody></table></div>`;
+  $('#view-stationen').innerHTML=`<div class="stack">
+    <div class="stack" style="gap:6px"><div class="eyebrow">Parcours im Seminarraum</div><h2>Fünf Stationen, fünf Gruppen, eine Synode</h2>
+      <p class="prose">Jede Station steht für einen Baustein des Moduls. Die Gruppen rotieren, deshalb erlebt jede Gruppe die Stationen in anderer Reihenfolge und unter anderen Landschaftsbedingungen. Das ist gewollt: Pfadabhängigkeit wird im Debriefing sichtbar.</p></div>
+    ${rot}
+    <div class="cards">${[1,2,3,4,5].map(i=>{const st=STATIONS[i]; return `<div class="panel scard">
+      <div class="row" style="justify-content:space-between;align-items:flex-start"><span class="num">S${i}</span><span class="pill">${st.modul} · ${st.praesenz.dauer}</span></div>
+      <div><h3>${st.titel}</h3><div class="muted" style="font-size:.88rem">${st.modulName} · ${st.tisch}</div></div>
+      <div><div class="eyebrow">Material am Tisch</div><ul class="clean">${st.praesenz.material.map(m=>`<li>${m}</li>`).join('')}</ul></div>
+      <div><div class="eyebrow">Präsenzauftrag</div><ol>${st.praesenz.auftrag.map(m=>`<li>${m}</li>`).join('')}</ol></div>
+      <div><div class="eyebrow">Konzept</div><p style="font-size:.92rem">${st.konzept.titel} · <span class="muted">${st.konzept.lit}</span></p></div>
+      ${st.praesenz.rollenkarte?`<details><summary>${i===1?'Rollenkarte Lena Okafor':i===4?'Kalkulationsblatt':'Material zum Vorlesen'}</summary><div style="font-size:.92rem">${st.praesenz.rollenkarte}</div></details>`:''}
+    </div>`;}).join('')}
+    <div class="panel scard"><div class="row" style="justify-content:space-between;align-items:flex-start"><span class="num">F</span><span class="pill">Plenum · 30 Minuten</span></div>
+      <div><h3>Dekanatssynode</h3><div class="muted" style="font-size:.88rem">Synthese · Stuhlkreis oder Hufeisen vor der Leinwand</div></div>
+      <div><div class="eyebrow">Ablauf</div><ol><li>Die Lehrperson eröffnet als Präses und zeigt die Leinwand.</li><li>Jede Gruppenleitung spricht zwei Minuten vor der Synode.</li><li>Die Gruppen wählen ihr Bewertungsverfahren in der App.</li><li>Die Synode »stimmt ab«: Die Ergebnisse erscheinen live auf der Leinwand.</li></ol></div>
+      <div><div class="eyebrow">Konzept</div><p style="font-size:.92rem">${FINALE.konzept.titel} · <span class="muted">${FINALE.konzept.lit}</span></p></div></div>
+    </div>
+    <div class="stack" style="gap:6px"><div class="eyebrow">Für Rollenspiel und KI-Gespräch</div><h3>Akteursprofile</h3>
+      <p class="prose muted" style="font-size:.92rem">Dieselben Profile nutzt das KI-Gespräch. Steht die KI nicht zur Verfügung, spielt eine Person aus der Gruppe oder die Lehrperson die Rolle anhand des Profils. Machtquellen nach Crozier und Friedberg.</p></div>
+    <div class="cards">${ACTORS.map(a=>`<div class="panel scard"><div><h4>${a.name}</h4><div class="muted" style="font-size:.88rem">${a.rolle}</div></div>
+      <p style="font-size:.92rem">${PERSONA[a.id]}</p>
+      <div class="row" style="font-size:.85rem"><span class="pill">Einfluss ${a.einfluss}/5</span><span class="pill">${MACHT[a.macht]}</span></div></div>`).join('')}</div>
+    </div>`;
+}
+
+/* ---------- Leinwand ---------- */
+function boardData(){
+  const live=Object.values(BOARD).sort((a,b)=>a.g-b.g);
+  if(UI.boardDemo || (!live.length)) return {demo:true, list:DEMO.map((d,i)=>runDemo(i,6))};
+  return {demo:false, list:live};
+}
+function pathSVG(list){
+  const W=560,H=420,m=44; const x=v=>m+(W-2*m)*v/100, y=v=>H-m-(H-2*m)*v/100;
+  let g=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pfade der Gruppen zwischen Nische und Regime">`;
+  g+=`<rect x="${x(50)}" y="${y(100)}" width="${x(100)-x(50)}" height="${y(55)-y(100)}" fill="var(--surface-2)"/>`;
+  [0,25,50,75,100].forEach(v=>{g+=`<line x1="${x(v)}" x2="${x(v)}" y1="${y(0)}" y2="${y(100)}" stroke="var(--line)"/><line x1="${x(0)}" x2="${x(100)}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/>`;
+    g+=`<text x="${x(v)}" y="${H-m+16}" text-anchor="middle" font-size="11" fill="var(--muted)">${v}</text><text x="${m-8}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v}</text>`;});
+  g+=`<text x="${W/2}" y="${H-6}" text-anchor="middle" font-size="12" fill="var(--regime)" font-weight="700">Rückhalt im Regime →</text>`;
+  g+=`<text x="12" y="${H/2}" text-anchor="middle" font-size="12" fill="var(--nische)" font-weight="700" transform="rotate(-90 12 ${H/2})">Nischenvitalität →</text>`;
+  g+=`<text x="${x(97)}" y="${y(96)}" text-anchor="end" font-size="11.5" fill="var(--ink)">Diffusion · Mischwald</text>`;
+  g+=`<text x="${x(3)}" y="${y(96)}" font-size="11.5" fill="var(--muted)">Nische ohne Rückhalt</text>`;
+  g+=`<text x="${x(97)}" y="${y(4)}" text-anchor="end" font-size="11.5" fill="var(--muted)">Assimilation</text>`;
+  g+=`<text x="${x(3)}" y="${y(4)}" font-size="11.5" fill="var(--muted)">Erosion</text>`;
+  list.forEach(s=>{ const c=`var(--g${s.g})`; const pts=s.hist.map(h=>`${x(h.v.R)},${y(h.v.N)}`).join(' ');
+    g+=`<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round" opacity=".9"/>`;
+    const f=s.hist[0].v, l=s.hist[s.hist.length-1].v;
+    g+=`<circle cx="${x(f.R)}" cy="${y(f.N)}" r="3" fill="${c}"/><circle cx="${x(l.R)}" cy="${y(l.N)}" r="7" fill="${c}" stroke="var(--surface)" stroke-width="2"/>`;
+    g+=`<text x="${x(l.R)+10}" y="${y(l.N)+4}" font-size="12" font-weight="700" fill="${c}">G${s.g}</text>`;});
+  return `<div class="chart-wrap">${g}</svg></div>`;
+}
+function renderBoard(){
+  if(currentTab!=='leinwand') return;
+  const {demo,list}=boardData();
+  const cards=list.map(s=>{const ph=phaseOf(s); const where=s.done?'abgeschlossen':s.step>=5?'Finale':`Durchgang ${s.step+1} · Station ${s.order[s.step]}`;
+    return `<div class="gcard" style="--gc:var(--g${s.g})">
+      <div class="row" style="justify-content:space-between"><b>${esc(s.name)}</b><span class="pill" style="color:var(--g${s.g})">G${s.g}</span></div>
+      <div class="muted" style="font-size:.82rem">${where}</div>
+      <div class="progress">${[0,1,2,3,4,5].map(i=>`<span class="${i<s.step||s.done?'done':i===s.step?'now':''}"></span>`).join('')}</div>
+      <div class="meters">${KEYS.map(k=>meterHTML(k,s.v[k])).join('')}</div>
+      <div style="font-size:.85rem"><b>${ph.n?'Phase '+ph.n+': '+ph.t:ph.t}</b>${s.synode?`<br>Synode: <span style="color:${s.synode.id==='ja'?'var(--good)':s.synode.id==='teil'?'var(--warn)':'var(--bad)'}">${s.synode.titel}</span>`:''}</div>
+      ${!demo&&DB?(UI.confirmReset===s.g?`<div class="confirm"><span>Spielstand löschen?</span><button class="btn small danger" data-action="reset-yes" data-g="${s.g}">Löschen</button><button class="btn small ghost" data-action="reset-no">Abbrechen</button></div>`:`<button class="btn small ghost" data-action="reset" data-g="${s.g}">Spielstand löschen</button>`):''}
+    </div>`;}).join('');
+  const rows=[1,2,3,4,5].map(i=>`<tr><td><b class="mono" style="font-size:.85rem">S${i}</b> ${STATIONS[i].modulName}</td>${list.map(s=>{const l=s.log.find(x=>x.station===i); return `<td>${l?`<b>${l.key}</b>${l.titel}`:'<span class="muted">–</span>'}</td>`;}).join('')}</tr>`).join('')
+    + `<tr><td><b class="mono" style="font-size:.85rem">F</b> Synode</td>${list.map(s=>{const l=s.log.find(x=>x.station==='F'); return `<td>${l?`<b>${l.key}</b>${l.titel}`:'<span class="muted">–</span>'}</td>`;}).join('')}</tr>`;
+  $('#view-leinwand').innerHTML=`<div class="stack">
+    <div class="row" style="justify-content:space-between;align-items:flex-end"><div class="stack" style="gap:6px"><div class="eyebrow">Für die Leinwand im Plenum</div><h2>Gruppenvergleich</h2></div>
+      <div class="row">${Object.keys(BOARD).length?`<button class="btn small ghost" data-action="toggledemo">${UI.boardDemo?'Live-Daten zeigen':'Beispieldaten zeigen'}</button>`:''}</div></div>
+    ${demo?`<div class="note"><b>Beispieldaten.</b> ${DB?'Noch hat keine Gruppe gespielt. Sobald eine Gruppe startet, erscheint hier ihr Live-Stand.':'Diese Ansicht hat keinen geteilten Spielstand, deshalb sieht die Leinwand die Geräte der Gruppen nicht. Gezeigt werden fünf simulierte Verläufe, damit ihr das Debriefing vorbereiten könnt.'}</div>`:''}
+    <div class="board">
+      <div class="panel stack"><div><h3>Pfade zwischen Nische und Regime</h3><p class="muted" style="font-size:.88rem">Jeder Punkt ist ein Halbjahr, der große Punkt der aktuelle Stand. Das hinterlegte Feld ist die Zone, in der Diffusion möglich wird.</p></div>${pathSVG(list)}</div>
+      <div class="gcards">${cards}</div>
+    </div>
+    <div class="panel stack"><h3>Entscheidungsmatrix</h3><p class="muted" style="font-size:.88rem">Gleiche Station, andere Entscheidung, anderer Zeitpunkt: Hier beginnt das Debriefing.</p>
+      <div class="tbl-wrap"><table class="matrix"><thead><tr><th>Station</th>${list.map(s=>`<th><span class="gdot" style="--gc:var(--g${s.g})"></span> ${esc(s.name)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div></div>
+  </div>`;
+}
+
+/* ---------- Lehrende ---------- */
+function renderLehrende(){
+  const ziele=[
+    ['Spezialisiertes Wissen zu Personalmanagementmodellen im Nonprofit-Bereich','S1 Personalmanagement: Bindungsgespräch, Befristung, Tandemmodell'],
+    ['Interne Anspruchsgruppen analysieren und ihren Beitrag verstehen','Stimmungsbild der Akteure, S3 Aufstellung, Leinwand'],
+    ['Fachliche und kommunikative Voraussetzungen für den Umgang mit internen Anspruchsgruppen schaffen','Rollenwechsel an jeder Station, Synodenrede im Finale'],
+    ['Macht und mikropolitische Prozesse als Gestaltungsressourcen verstehen und nutzen','S3 Mikropolitik: Machtquellen nach Crozier/Friedberg, Koalitionsbildung'],
+    ['Einrichtungen mit Hilfe von Kennzahlen steuern','S4 Internes Rechnungswesen: Vollkosten, Deckungsbeitrag, Wirkungskennzahlen; Finale'],
+    ['Modelle der Leitung haupt- und ehrenamtlicher Mitarbeitender anwenden','S1 und S2, Leitungszeit »Menschen führen«'],
+    ['Ganzheitliche Ausrichtung durch Change-Management und Controlling','S5 Change: Gelegenheitsfenster, Ambidextrie; Phasenmodell im Lagebild']];
+  const agenda=[
+    ['09:00','Ankommen und Einstieg','Blitzlicht: Wo erlebt ihr Neues, das vom Bestehenden abhängt?','Flipchart'],
+    ['09:15','Nische, Regime, Landschaft','Kurzinput mit Rückfragen','Bils, Faix & Hilbrands 2024, Teil A; Abb. Mehrebenenperspektive'],
+    ['09:35','Lernumwelt Lindenau und Gruppenbildung','Fünf Gruppen à vier Personen, Gerät pro Gruppe, Nummerierung','App: Startseite, Tab Stationen'],
+    ['09:50','Parcours, Durchgang 1','Stationsarbeit: Konzept, Präsenzaufgabe, Entscheidung','Stationsmaterial, App'],
+    ['10:15','Parcours, Durchgang 2','Stationsarbeit, Rollenwechsel','Stationsmaterial, App'],
+    ['10:40','Parcours, Durchgang 3','Stationsarbeit, Rollenwechsel','Stationsmaterial, App'],
+    ['11:05','Pause','',''],
+    ['11:20','Parcours, Durchgang 4','Stationsarbeit, Rollenwechsel','Stationsmaterial, App'],
+    ['11:45','Parcours, Durchgang 5','Stationsarbeit, Rollenwechsel','Stationsmaterial, App'],
+    ['12:10','Finale: Dekanatssynode','Planspiel im Plenum, Reden der Gruppenleitungen','App: Finale; Leinwand'],
+    ['12:40','Debriefing I: Was ist passiert?','Pfadvergleich an der Leinwand, Gruppen erklären Wendepunkte','Leinwand: Pfade, Entscheidungsmatrix'],
+    ['13:10','Debriefing II: Theorie und Transfer','Fishbowl zu den fünf Konfliktlinien, Ausblick Hausarbeit','Bils, Faix & Hilbrands 2024, Teil C; Protokolle der Gruppen'],
+    ['13:30','Ende','','']];
+  $('#view-lehrende').innerHTML=`<div class="stack">
+    <div class="stack" style="gap:6px"><div class="eyebrow">Leitfaden für die Durchführung</div><h2>Hybrides Planspiel für M5 – Management interner Stakeholder</h2>
+      <p class="prose">Der Use Case verbindet einen kirchlich-diakonischen Erprobungsraum mit den fünf Bausteinen des Moduls. Die Studierenden lernen an jeder Station ein Konzept kennen, wenden es in einer Präsenzaufgabe an und treffen eine strategische Entscheidung, deren Folgen das Modell über die Halbjahre weiterträgt. Konzipiert für etwa 20 Studierende in fünf Gruppen, einen Halbtag und einen Raum mit fünf Stationen.</p></div>
+    <div class="panel stack"><h3>Ablauf</h3><div class="tbl-wrap"><table><thead><tr><th>Zeit</th><th>Thema</th><th>Methode</th><th>Input</th></tr></thead><tbody>${agenda.map(r=>`<tr><td class="mono">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody></table></div>
+      <p class="muted" style="font-size:.88rem">Pro Durchgang 20 Minuten Arbeit und 5 Minuten Wechsel. Wer weniger Zeit hat, spielt die Stationen über zwei Sitzungen: Durchgang 1 bis 3, dann 4, 5 und das Finale.</p></div>
+    <div class="panel stack"><h3>Qualifikationsziele aus dem Modulhandbuch und ihr Ort im Spiel</h3><div class="tbl-wrap"><table><thead><tr><th>Qualifikationsziel M5</th><th>Wo es im Parcours geübt wird</th></tr></thead><tbody>${ziele.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</tbody></table></div></div>
+    <div class="cols2">
+      <div class="panel stack"><h3>Raum und Material</h3><ul class="clean">
+        <li>Fünf Stationstische, im Uhrzeigersinn nummeriert. Am Tisch: Stationsschild, Material laut Tab »Stationen«.</li>
+        <li>Station 3 braucht Platz für eine Bodenmatrix aus Klebeband, etwa 3 × 3 Meter.</li>
+        <li>Station 5 braucht eine Wand oder Pinnwand für den Zeitstrahl.</li>
+        <li>Ein Tablet oder Laptop pro Gruppe, dazu Beamer für die Leinwand.</li>
+        <li>Taschenrechner für Station 4.</li></ul></div>
+      <div class="panel stack"><h3>Debriefing in drei Schritten</h3><ul class="clean">
+        <li><b>Erleben:</b> Wie ging es euch in den Rollen? Wann wart ihr euch uneinig?</li>
+        <li><b>Verstehen:</b> Welche Wendepunkte zeigt die Leinwand? Warum haben gleiche Entscheidungen bei verschiedenen Gruppen unterschiedlich gewirkt?</li>
+        <li><b>Übertragen:</b> Wo erlebt ihr in eurer eigenen Organisation eine Nische, die vom Regime abhängt? Wer ist dort der Förster?</li></ul></div>
+      <div class="panel stack"><h3>Die fünf Konfliktlinien im Spiel</h3><ul class="clean">
+        <li><b>Was ist Kirche?</b> S2 (Mitgliedschaft und Engagement), Finale (Kriterien)</li>
+        <li><b>Organisation, Institution, Bewegung:</b> S1 (Tandemstelle), S5 (Integration)</li>
+        <li><b>Parochie und Kirchenrecht:</b> S2 Option C, S5 Option C</li>
+        <li><b>Offenheit für Irritation:</b> S3 (Synode), S4 (Sonderhaushalt)</li>
+        <li><b>Kirchenentwicklung oder Ressourcensteuerung:</b> S4, Finale, der ganze Verlauf</li></ul>
+        <p class="muted" style="font-size:.85rem">Nach Bils, Faix & Hilbrands 2024, Teil C.</p></div>
+      <div class="panel stack"><h3>Was das Modell bewusst vereinfacht</h3><ul class="clean">
+        <li>Die Werte sind didaktische Indizes, keine Messgrößen. Es geht um Richtung und Wechselwirkung.</li>
+        <li>Das Modell ist deterministisch: Gleiche Entscheidungen in gleicher Reihenfolge führen zum gleichen Ergebnis. Unterschiede zwischen Gruppen entstehen durch Entscheidungen, Leitungszeit und Reihenfolge.</li>
+        <li>Verzögerte Folgen treten zwei Durchgänge später auf, etwa nach einer Weiterbefristung oder einem Sonderhaushalt.</li>
+        <li>Die Präsenzaufgaben geben kleine Boni. Sie belohnen genaues Hinhören und Rechnen, entscheiden das Spiel aber nicht.</li></ul></div>
+    </div>
+    <div class="panel stack"><h3>Literatur und Anschlüsse</h3><ul class="clean">
+      <li>Bils, S., Faix, T. & Hilbrands, C. (2024): Erprobung empirisch: Analyse, Lernerfahrungen und Handlungsempfehlungen für die Kirchenentwicklung. Vandenhoeck & Ruprecht, S. 263–288.</li>
+      <li>Geels, F. W. (2002): Technological transitions as evolutionary reconfiguration processes. Research Policy 31, 1257–1274.</li>
+      <li>Crozier, M. & Friedberg, E. (1979): Macht und Organisation. Königstein: Athenäum.</li>
+      <li>Kühl, S. (2017): Laterales Führen. Wiesbaden: Springer VS.</li>
+      <li>Herzberg, F., Mausner, B. & Snyderman, B. (1959): The Motivation to Work. New York: Wiley.</li>
+      <li>Kotter, J. P. (1996): Leading Change. Boston: Harvard Business School Press.</li>
+      <li>March, J. G. (1991): Exploration and exploitation in organizational learning. Organization Science 2, 71–87.</li>
+      <li>Smith, W., Krautzberger, M. & Tuckermann, H. (2023): Faszination Paradoxien. OrganisationsEntwicklung 42, 51–55.</li></ul>
+      <p class="muted" style="font-size:.88rem">Die Lernumwelt Lindenau ist so angelegt, dass sie über mehrere Sitzungen trägt – ähnlich einer festen Lernumwelt wie dem »Gemeinschaftswerk Munsterstadt« im Vertiefungsmodul Führung, Strategie und Projektmanagement. Die Stationen lassen sich dort mit anderen Lektüren bespielen, etwa Kühl zu Machtspielen in Projekten oder Glatzel und Wimmer zur Strategieentwicklung.</p></div>
+    <div class="panel stack"><h3>Technik im Prototyp</h3><ul class="clean">
+      <li>Jede Gruppe spielt auf ihrem Gerät. Der Spielstand bleibt im Browser erhalten, auch nach einem Neuladen.</li>
+      <li>Die Leinwand zeigt alle Gruppen live, wenn die Geräte mit Konten angemeldet sind, die diese Seite bearbeiten dürfen (Freigabe mindestens »Contributor«). Sonst zeigt sie Beispieldaten.</li>
+      <li>Vor einem neuen Durchlauf löscht die Lehrperson auf der Leinwand die alten Spielstände.</li>
+      <li>Das KI-Gespräch nutzt Claude über das Konto der angemeldeten Person; beim ersten Aufruf fragt die Seite um Erlaubnis. Die KI bekommt Fallbeschreibung, Akteursprofil, Konzept der Station und den aktuellen Spielstand der Gruppe mit. Ein eigens trainiertes Modell ist das nicht, das Verhalten steuern die Profile und Spielregeln im Prompt.</li>
+      <li>Ausbaustufe: Netlify für die Seite, Supabase für Sitzungen, Gruppen und Echtzeit-Leinwand, eine Serverfunktion für die KI-Anbindung mit Hochschul-Schlüssel, QR-Codes an den Stationstischen.</li></ul></div>
+  </div>`;
+}
+
+/* ---------- Navigation und Ereignisse ---------- */
+function showTab(t){
+  currentTab=t;
+  document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===t)));
+  ['gruppe','stationen','leinwand','lehrende'].forEach(v=>{$('#view-'+v).hidden=(v!==t);});
+  if(t==='gruppe') (S?renderGame():renderStart());
+  if(t==='stationen') renderStationen();
+  if(t==='leinwand') renderBoard();
+  if(t==='lehrende') renderLehrende();
+  try{ history.replaceState(null,'','#'+t);}catch(e){}
+  window.scrollTo(0,0);
+}
+document.addEventListener('click',ev=>{
+  const tab=ev.target.closest('[data-tab]'); if(tab){ showTab(tab.dataset.tab); return; }
+  const b=ev.target.closest('[data-action]'); if(!b) return;
+  const a=b.dataset.action;
+  if(a==='pickgroup'){ UI.startG=Number(b.dataset.g); const n=$('#gname').value; renderStart(); $('#gname').value=n; return; }
+  if(a==='start'){ const name=($('#gname').value||'').trim(); S=newState(UI.startG,name); enterStep(S); UI.alloc=[3,3,2,2]; UI.pick=null; persist(); renderGame(); window.scrollTo(0,0); return; }
+  if(a==='resume'){ S=loadLocal(); persist(); renderGame(); return; }
+  if(a==='go'){ S.view=b.dataset.to; persist(); renderGame(); window.scrollTo(0,0); return; }
+  if(a==='skiptask'){ S.tasks[S.order[S.step]]={ans:{},ok:false,html:'<p class="muted">Ihr habt die Präsenzaufgabe übersprungen.</p>'}; persist(); renderGame(); return; }
+  if(a==='alloc'){ const i=Number(b.dataset.i), d=Number(b.dataset.d); const sum=UI.alloc.reduce((x,y)=>x+y,0); if(d>0&&sum>=10) return; UI.alloc[i]=clamp(UI.alloc[i]+d,0,10); renderGame(); return; }
+  if(a==='pick'){ UI.pick=b.dataset.k; S.view==='finale'?renderFinale():renderGame(); return; }
+  if(a==='decide'){ decide(S,[...UI.alloc],UI.pick); UI.pick=null; persist(); renderGame(); window.scrollTo(0,0); return; }
+  if(a==='advance'){ advance(S); UI.pick=null; if(CHAT.ctl) CHAT.ctl.abort(); CHAT.partner=null; CHAT.err=''; persist(); renderGame(); window.scrollTo(0,0); return; }
+  if(a==='chatstart'){ sendChat(b.dataset.t); return; }
+  if(a==='chatstop'){ if(CHAT.ctl) CHAT.ctl.abort(); return; }
+  if(a==='chatclear'){ CHAT.turns[CHAT.partner]=[]; CHAT.err=''; renderChat(); return; }
+  if(a==='aiokafor'){ CHAT.partner='okafor'; CHAT.err=''; renderChat(); const c=$('#chat'); if(c) c.scrollIntoView({behavior:'smooth',block:'start'}); return; }
+  if(a==='finale'){ finale(S,UI.pick); UI.pick=null; persist(); renderFinale(); window.scrollTo(0,0); return; }
+  if(a==='copylog'){ const t=logText(S); const ta=$('#logtext'); ta.value=t;
+    const fallback=()=>{ta.hidden=false; ta.focus(); ta.select(); b.textContent='Text markiert – jetzt kopieren';};
+    try{ navigator.clipboard.writeText(t).then(()=>{b.textContent='Protokoll kopiert';}).catch(fallback);}catch(e){fallback();} return; }
+  if(a==='newgame'){ UI.confirmNew=true; renderFinale(); return; }
+  if(a==='newgame-no'){ UI.confirmNew=false; renderFinale(); return; }
+  if(a==='newgame-yes'){ UI.confirmNew=false; S=null; saveLocal(); UI.startG=null; renderStart(); return; }
+  if(a==='toggledemo'){ UI.boardDemo=!UI.boardDemo; renderBoard(); return; }
+  if(a==='reset'){ UI.confirmReset=Number(b.dataset.g); renderBoard(); return; }
+  if(a==='reset-no'){ UI.confirmReset=null; renderBoard(); return; }
+  if(a==='reset-yes'){ const g=Number(b.dataset.g); UI.confirmReset=null; if(DB){ DB.doc('gruppen/g'+g).delete().catch(()=>{}); } delete BOARD['g'+g]; renderBoard(); return; }
+});
+
+/* Start */
+(function boot(){
+  const saved=loadLocal(); if(saved && saved.v && !saved.done && saved.step<6){ S=saved; }
+  const h=(location.hash||'').slice(1);
+  showTab(['gruppe','stationen','leinwand','lehrende'].includes(h)?h:'gruppe');
+  initDb();
+  initAI();
+})();
+</script>
